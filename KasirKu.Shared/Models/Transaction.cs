@@ -1,10 +1,18 @@
-namespace KasirKu.Models
+namespace KasirKu.Shared.Models
 {
     public class TransactionItem
     {
         public string Kode { get; set; } = "";
         public string Nama { get; set; } = "";
         public decimal Harga { get; set; }
+
+        /// <summary>
+        /// Snapshot harga beli (modal) saat transaksi dibuat.
+        /// Dipakai aplikasi Manajemen untuk hitung laba; data lama bisa 0
+        /// dan akan di-fallback lewat lookup produk.
+        /// </summary>
+        public decimal HargaBeli { get; set; }
+
         public int Qty { get; set; }
         public decimal Subtotal => Harga * Qty;
         public string SubtotalRp => $"Rp {Subtotal:N0}";

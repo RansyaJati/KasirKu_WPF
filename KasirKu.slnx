@@ -1,4 +1,6 @@
 <Solution>
   <Folder Name="/Solution Items/" />
-  <Project Path="KasirKu/KasirKu.csproj" />
+  <Project Path="KasirKu.Shared/KasirKu.Shared.csproj" />
+  <Project Path="KasirKu.POS/KasirKu.POS.csproj" />
+  <Project Path="KasirKu.Manager/KasirKu.Manager.csproj" />
 </Solution>

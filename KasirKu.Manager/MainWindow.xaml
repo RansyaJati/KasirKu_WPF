@@ -1,0 +1,705 @@
+<Window x:Class="KasirKu.Manager.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="KasirKu Manager - Aplikasi Manajemen" Height="750" Width="1200"
+        MinHeight="650" MinWidth="1000"
+        WindowStartupLocation="CenterScreen"
+        Background="#F1F5F9"
+        PreviewKeyDown="Window_PreviewKeyDown">
+    <Window.Resources>
+        <!-- Sidebar button -->
+        <Style x:Key="SideButton" TargetType="Button">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Foreground" Value="#94A3B8"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="Padding" Value="16,12"/>
+            <Setter Property="HorizontalContentAlignment" Value="Left"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}" Padding="{TemplateBinding Padding}" CornerRadius="8" Margin="6,2">
+                            <ContentPresenter HorizontalAlignment="Left" VerticalAlignment="Center"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#1E293B"/>
+                    <Setter Property="Foreground" Value="White"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style x:Key="PrimaryButton" TargetType="Button">
+            <Setter Property="Background" Value="#2563EB"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Padding" Value="14,9"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}" CornerRadius="8" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#1D4ED8"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style x:Key="SuccessButton" TargetType="Button" BasedOn="{StaticResource PrimaryButton}">
+            <Setter Property="Background" Value="#16A34A"/>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#15803D"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style x:Key="DangerButton" TargetType="Button" BasedOn="{StaticResource PrimaryButton}">
+            <Setter Property="Background" Value="#DC2626"/>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#B91C1C"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style x:Key="GhostButton" TargetType="Button" BasedOn="{StaticResource PrimaryButton}">
+            <Setter Property="Background" Value="#E2E8F0"/>
+            <Setter Property="Foreground" Value="#334155"/>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#CBD5E1"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style x:Key="SmallRedButton" TargetType="Button">
+            <Setter Property="Background" Value="#DC2626"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}" CornerRadius="6" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#B91C1C"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style x:Key="Card" TargetType="Border">
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="CornerRadius" Value="14"/>
+            <Setter Property="Padding" Value="16"/>
+            <Setter Property="Margin" Value="0,0,0,12"/>
+            <Setter Property="BorderBrush" Value="#E2E8F0"/>
+            <Setter Property="BorderThickness" Value="1"/>
+        </Style>
+
+        <Style TargetType="TextBox">
+            <Setter Property="Padding" Value="10,8"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="BorderBrush" Value="#CBD5E1"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Background" Value="White"/>
+        </Style>
+        <Style TargetType="ComboBox">
+            <Setter Property="Padding" Value="8"/>
+            <Setter Property="FontSize" Value="13"/>
+        </Style>
+        <Style TargetType="DatePicker">
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Padding" Value="6"/>
+        </Style>
+        <Style TargetType="DataGrid">
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="BorderBrush" Value="#E2E8F0"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="RowHeaderWidth" Value="0"/>
+            <Setter Property="AutoGenerateColumns" Value="False"/>
+            <Setter Property="CanUserAddRows" Value="False"/>
+            <Setter Property="CanUserDeleteRows" Value="False"/>
+            <Setter Property="IsReadOnly" Value="True"/>
+            <Setter Property="SelectionMode" Value="Single"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="RowHeight" Value="36"/>
+            <Setter Property="HeadersVisibility" Value="Column"/>
+            <Setter Property="AlternatingRowBackground" Value="#F8FAFC"/>
+            <Setter Property="GridLinesVisibility" Value="Horizontal"/>
+            <Setter Property="HorizontalGridLinesBrush" Value="#E2E8F0"/>
+            <Setter Property="CanUserResizeRows" Value="False"/>
+        </Style>
+        <Style TargetType="DataGridColumnHeader">
+            <Setter Property="Background" Value="#F8FAFC"/>
+            <Setter Property="Foreground" Value="#475569"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="Padding" Value="10,8"/>
+            <Setter Property="BorderThickness" Value="0,0,0,1"/>
+            <Setter Property="BorderBrush" Value="#E2E8F0"/>
+        </Style>
+    </Window.Resources>
+
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="220"/>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+
+        <!-- SIDEBAR -->
+        <Border Grid.Column="0" Background="#0F172A">
+            <DockPanel>
+                <StackPanel DockPanel.Dock="Top" Margin="14,16,14,20">
+                    <Image Source="/Assets/banyu_nobg.png" Width="180" Margin="0,0,0,6"/>
+                    <TextBlock Text="MANAGER" Foreground="#64748B" FontSize="11" FontWeight="Bold" HorizontalAlignment="Center"/>
+                    <Border Background="#1E293B" CornerRadius="6" Padding="8,4" Margin="0,10,0,0">
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                            <TextBlock x:Name="TxtTanggal" Text="..." Foreground="#94A3B8" FontSize="11" Margin="0,0,8,0"/>
+                            <TextBlock x:Name="TxtJam" Text="..." Foreground="White" FontSize="11" FontWeight="Bold"/>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+
+                <StackPanel DockPanel.Dock="Bottom" Margin="14,0,14,14">
+                    <Border Background="#1E293B" CornerRadius="8" Padding="10,8" Margin="0,0,0,8">
+                        <TextBlock x:Name="TxtUserLogin" Text="Login: -" Foreground="#94A3B8" FontSize="11" FontWeight="Bold" TextWrapping="Wrap"/>
+                    </Border>
+                    <Button x:Name="BtnLogout" Style="{StaticResource SideButton}" Content="Logout" Foreground="#F87171" Click="BtnLogout_Click"/>
+                    <Button x:Name="BtnRefreshData" Style="{StaticResource SideButton}" Content="F10 - Refresh Data" Click="BtnRefreshData_Click"/>
+                    <TextBlock x:Name="TxtLastRefresh" Text="" Foreground="#475569" FontSize="10" Margin="8,4,0,0" TextWrapping="Wrap"/>
+                </StackPanel>
+
+                <StackPanel Margin="0,4,0,0">
+                    <Button x:Name="BtnNavDashboard" Style="{StaticResource SideButton}" Content="F1 - Dashboard" Click="Nav_Click" Tag="Dashboard"/>
+                    <Button x:Name="BtnNavProduk" Style="{StaticResource SideButton}" Content="F2 - Produk" Click="Nav_Click" Tag="Produk"/>
+                    <Button x:Name="BtnNavStok" Style="{StaticResource SideButton}" Content="F3 - Stok" Click="Nav_Click" Tag="Stok"/>
+                    <Button x:Name="BtnNavRiwayat" Style="{StaticResource SideButton}" Content="F4 - Riwayat" Click="Nav_Click" Tag="Riwayat"/>
+                    <Button x:Name="BtnNavLaporan" Style="{StaticResource SideButton}" Content="F5 - Laporan" Click="Nav_Click" Tag="Laporan"/>
+                    <Button x:Name="BtnNavPengaturan" Style="{StaticResource SideButton}" Content="F6 - Pengaturan" Click="Nav_Click" Tag="Pengaturan"/>
+                </StackPanel>
+            </DockPanel>
+        </Border>
+
+        <!-- MAIN CONTENT -->
+        <Grid Grid.Column="1">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+
+            <!-- HEADER -->
+            <Border Grid.Row="0" Background="White" BorderBrush="#E2E8F0" BorderThickness="0,0,0,1" Padding="24,16">
+                <StackPanel>
+                    <TextBlock x:Name="TxtHeaderTitle" Text="Dashboard" FontSize="22" FontWeight="ExtraBold" Foreground="#0F172A"/>
+                    <TextBlock x:Name="TxtHeaderSub" Text="Ringkasan bisnis hari ini." FontSize="13" Foreground="#64748B"/>
+                </StackPanel>
+            </Border>
+
+            <!-- PAGE CONTAINER -->
+            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="24,16">
+                <Grid>
+
+                    <!-- ===== DASHBOARD (F1) ===== -->
+                    <StackPanel x:Name="PageDashboard">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Border Grid.Column="0" Style="{StaticResource Card}" Margin="0,0,8,12" Background="#DBEAFE" BorderBrush="#BFDBFE">
+                                <StackPanel>
+                                    <TextBlock Text="Omzet Hari Ini" FontSize="12" Foreground="#1E40AF"/>
+                                    <TextBlock x:Name="CardDashOmzet" Text="Rp 0" FontSize="20" FontWeight="ExtraBold" Foreground="#1E3A8A"/>
+                                </StackPanel>
+                            </Border>
+                            <Border Grid.Column="1" Style="{StaticResource Card}" Margin="4,0,8,12" Background="#DCFCE7" BorderBrush="#BBF7D0">
+                                <StackPanel>
+                                    <TextBlock Text="Laba Estimasi" FontSize="12" Foreground="#166534"/>
+                                    <TextBlock x:Name="CardDashLaba" Text="Rp 0" FontSize="20" FontWeight="ExtraBold" Foreground="#14532D"/>
+                                </StackPanel>
+                            </Border>
+                            <Border Grid.Column="2" Style="{StaticResource Card}" Margin="4,0,8,12" Background="#FEF3C7" BorderBrush="#FDE68A">
+                                <StackPanel>
+                                    <TextBlock Text="Transaksi" FontSize="12" Foreground="#92400E"/>
+                                    <TextBlock x:Name="CardDashTrx" Text="0" FontSize="20" FontWeight="ExtraBold" Foreground="#78350F"/>
+                                </StackPanel>
+                            </Border>
+                            <Border Grid.Column="3" Style="{StaticResource Card}" Margin="4,0,0,12" Background="#F3E8FF" BorderBrush="#DDD6FE">
+                                <StackPanel>
+                                    <TextBlock Text="Item Terjual" FontSize="12" Foreground="#6B21A8"/>
+                                    <TextBlock x:Name="CardDashItem" Text="0" FontSize="20" FontWeight="ExtraBold" Foreground="#581C87"/>
+                                </StackPanel>
+                            </Border>
+                        </Grid>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Border Grid.Column="0" Style="{StaticResource Card}" Margin="0,0,6,0">
+                                <DockPanel>
+                                    <TextBlock Text="Stok Menipis (stok &lt;= 10)" FontWeight="Bold" FontSize="15" DockPanel.Dock="Top" Margin="0,0,0,8"/>
+                                    <DataGrid x:Name="DgStokTipis" Height="220">
+                                        <DataGrid.Columns>
+                                            <DataGridTextColumn Header="Kode" Binding="{Binding Kode}" Width="90"/>
+                                            <DataGridTextColumn Header="Nama" Binding="{Binding Nama}" Width="*"/>
+                                            <DataGridTextColumn Header="Stok" Binding="{Binding Stok}" Width="60"/>
+                                            <DataGridTextColumn Header="Harga Jual" Binding="{Binding HargaJualRp}" Width="100"/>
+                                        </DataGrid.Columns>
+                                    </DataGrid>
+                                </DockPanel>
+                            </Border>
+                            <Border Grid.Column="1" Style="{StaticResource Card}" Margin="6,0,0,0">
+                                <StackPanel>
+                                    <TextBlock Text="Ringkasan Hari Ini" FontWeight="Bold" FontSize="15" Margin="0,0,0,8"/>
+                                    <TextBlock x:Name="TxtDashRingkasan" Text="-" FontSize="13" Foreground="#334155" TextWrapping="Wrap"/>
+                                </StackPanel>
+                            </Border>
+                        </Grid>
+                    </StackPanel>
+
+                    <!-- ===== PRODUK (F2) ===== -->
+                    <Grid x:Name="PageProduk" Visibility="Collapsed">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="320"/>
+                        </Grid.ColumnDefinitions>
+                        <Border Grid.Column="0" Style="{StaticResource Card}" Margin="0,0,12,0">
+                            <DockPanel>
+                                <TextBlock Text="Data Produk" FontWeight="Bold" FontSize="15" DockPanel.Dock="Top" Margin="0,0,0,8"/>
+                                <TextBox x:Name="TxtCariProduk" DockPanel.Dock="Top" Margin="0,0,0,10" TextChanged="TxtCariProduk_TextChanged"/>
+                                <DataGrid x:Name="DgProduk" DockPanel.Dock="Top" SelectionChanged="DgProduk_SelectionChanged" VerticalScrollBarVisibility="Auto" ScrollViewer.HorizontalScrollBarVisibility="Auto">
+                                    <DataGrid.Columns>
+                                        <DataGridTextColumn Header="Kode" Binding="{Binding Kode}" Width="95"/>
+                                        <DataGridTextColumn Header="Barcode" Binding="{Binding Barcode}" Width="115"/>
+                                        <DataGridTextColumn Header="Nama" Binding="{Binding Nama}" Width="170"/>
+                                        <DataGridTextColumn Header="Satuan" Binding="{Binding Satuan}" Width="65"/>
+                                        <DataGridTextColumn Header="Harga Beli" Binding="{Binding HargaBeliRp}" Width="100"/>
+                                        <DataGridTextColumn Header="Stok" Binding="{Binding Stok}" Width="55"/>
+                                        <DataGridTextColumn Header="Supplier" Binding="{Binding Supplier}" Width="110"/>
+                                        <DataGridTextColumn Header="Harga Jual" Binding="{Binding HargaJualRp}" Width="100"/>
+                                        <DataGridTextColumn Header="Margin" Binding="{Binding MarginStr}" Width="140"/>
+                                        <DataGridTextColumn Header="Kelompok" Binding="{Binding Kelompok}" Width="95"/>
+                                        <DataGridTemplateColumn Header="Aksi" Width="75">
+                                            <DataGridTemplateColumn.CellTemplate>
+                                                <DataTemplate>
+                                                    <Button Content="Hapus" FontSize="11" Padding="8,4"
+                                                            Style="{StaticResource SmallRedButton}"
+                                                            Click="BtnHapusProduk_Click" Tag="{Binding}"/>
+                                                </DataTemplate>
+                                            </DataGridTemplateColumn.CellTemplate>
+                                        </DataGridTemplateColumn>
+                                    </DataGrid.Columns>
+                                </DataGrid>
+                            </DockPanel>
+                        </Border>
+                        <Border Grid.Column="1" Style="{StaticResource Card}">
+                            <ScrollViewer VerticalScrollBarVisibility="Auto">
+                                <StackPanel>
+                                    <TextBlock x:Name="TxtFormTitle" Text="Tambah Produk" FontWeight="Bold" FontSize="15" Margin="0,0,0,12"/>
+                                    <TextBlock Text="Kode Produk" FontSize="12" Foreground="#64748B"/>
+                                    <TextBox x:Name="TxtKode" Margin="0,4,0,10"/>
+                                    <TextBlock Text="Kode Barcode" FontSize="12" Foreground="#64748B"/>
+                                    <TextBox x:Name="TxtBarcode" Margin="0,4,0,10"/>
+                                    <TextBlock Text="Nama Produk" FontSize="12" Foreground="#64748B"/>
+                                    <TextBox x:Name="TxtNama" Margin="0,4,0,10"/>
+                                    <TextBlock Text="Satuan" FontSize="12" Foreground="#64748B"/>
+                                    <ComboBox x:Name="CmbSatuan" Margin="0,4,0,10" IsEditable="True" Text="Pcs">
+                                        <ComboBoxItem Content="Pcs" IsSelected="True"/>
+                                        <ComboBoxItem Content="Pack"/>
+                                        <ComboBoxItem Content="Dus"/>
+                                        <ComboBoxItem Content="Karton"/>
+                                        <ComboBoxItem Content="Kg"/>
+                                        <ComboBoxItem Content="Gram"/>
+                                        <ComboBoxItem Content="Liter"/>
+                                        <ComboBoxItem Content="Botol"/>
+                                        <ComboBoxItem Content="Lusin"/>
+                                    </ComboBox>
+                                    <TextBlock Text="Harga Beli (Rp)" FontSize="12" Foreground="#64748B"/>
+                                    <TextBox x:Name="TxtHargaBeli" Margin="0,4,0,10" TextChanged="TxtHargaMargin_TextChanged"/>
+                                    <TextBlock Text="Qty / Stok" FontSize="12" Foreground="#64748B"/>
+                                    <TextBox x:Name="TxtStok" Margin="0,4,0,10"/>
+                                    <TextBlock Text="Supplier" FontSize="12" Foreground="#64748B"/>
+                                    <ComboBox x:Name="CmbSupplier" Margin="0,4,0,10" IsEditable="True">
+                                        <ComboBoxItem Content="Umum"/>
+                                        <ComboBoxItem Content="Distributor A"/>
+                                        <ComboBoxItem Content="Distributor B"/>
+                                        <ComboBoxItem Content="Agen Frozen"/>
+                                    </ComboBox>
+                                    <TextBlock Text="Harga Jual (Rp)" FontSize="12" Foreground="#64748B"/>
+                                    <TextBox x:Name="TxtHarga" Margin="0,4,0,4" TextChanged="TxtHargaMargin_TextChanged"/>
+                                    <TextBlock x:Name="TxtMarginInfo" Text="Margin: -" FontSize="12" FontWeight="Bold" Foreground="#16A34A" Margin="0,0,0,10"/>
+                                    <TextBlock Text="Kelompok" FontSize="12" Foreground="#64748B"/>
+                                    <ComboBox x:Name="CmbKategori" Margin="0,4,0,14">
+                                        <ComboBoxItem Content="Makanan" IsSelected="True"/>
+                                        <ComboBoxItem Content="Minuman"/>
+                                        <ComboBoxItem Content="Snack"/>
+                                        <ComboBoxItem Content="Frozen"/>
+                                        <ComboBoxItem Content="ATK"/>
+                                        <ComboBoxItem Content="Lainnya"/>
+                                    </ComboBox>
+                                    <Button x:Name="BtnSimpanProduk" Content="Simpan" Style="{StaticResource PrimaryButton}" Click="BtnSimpanProduk_Click"/>
+                                    <Button x:Name="BtnBatalProduk" Content="Batal / Baru" Style="{StaticResource GhostButton}" Margin="0,8,0,0" Click="BtnBatalProduk_Click"/>
+                                </StackPanel>
+                            </ScrollViewer>
+                        </Border>
+                    </Grid>
+
+                    <!-- ===== STOK (F3) ===== -->
+                    <Grid x:Name="PageStok" Visibility="Collapsed">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="340"/>
+                        </Grid.ColumnDefinitions>
+                        <Border Grid.Column="0" Style="{StaticResource Card}" Margin="0,0,12,0">
+                            <DockPanel>
+                                <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,8">
+                                    <TextBlock Text="Log Barang Masuk / Keluar" FontWeight="Bold" FontSize="15" VerticalAlignment="Center"/>
+                                    <Button x:Name="BtnHapusStokLog" Content="Hapus Semua" Style="{StaticResource DangerButton}" Margin="16,0,0,0" Padding="10,5" Click="BtnHapusStokLog_Click"/>
+                                </StackPanel>
+                                <Grid DockPanel.Dock="Top" Margin="0,0,0,10">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="130"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBox x:Name="TxtCariStok" Grid.Column="0" Margin="0,0,8,0" TextChanged="TxtCariStok_TextChanged"/>
+                                    <ComboBox x:Name="CmbFilterJenis" Grid.Column="1" SelectionChanged="CmbFilterJenis_SelectionChanged">
+                                        <ComboBoxItem Content="Semua" IsSelected="True"/>
+                                        <ComboBoxItem Content="Masuk"/>
+                                        <ComboBoxItem Content="Keluar"/>
+                                    </ComboBox>
+                                </Grid>
+                                <Grid DockPanel.Dock="Top" Margin="0,0,0,10">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <Border Grid.Column="0" Background="#DCFCE7" BorderBrush="#BBF7D0" BorderThickness="1" CornerRadius="10" Padding="12,8" Margin="0,0,6,0">
+                                        <StackPanel>
+                                            <TextBlock Text="Masuk Hari Ini" FontSize="12" Foreground="#166534"/>
+                                            <TextBlock x:Name="CardStokMasuk" Text="+0" FontSize="20" FontWeight="ExtraBold" Foreground="#14532D"/>
+                                        </StackPanel>
+                                    </Border>
+                                    <Border Grid.Column="1" Background="#FEE2E2" BorderBrush="#FECACA" BorderThickness="1" CornerRadius="10" Padding="12,8" Margin="6,0,0,0">
+                                        <StackPanel>
+                                            <TextBlock Text="Keluar Hari Ini" FontSize="12" Foreground="#991B1B"/>
+                                            <TextBlock x:Name="CardStokKeluar" Text="-0" FontSize="20" FontWeight="ExtraBold" Foreground="#7F1D1D"/>
+                                        </StackPanel>
+                                    </Border>
+                                </Grid>
+                                <DataGrid x:Name="DgStok" VerticalScrollBarVisibility="Auto">
+                                    <DataGrid.Columns>
+                                        <DataGridTextColumn Header="Tanggal" Binding="{Binding TanggalStr}" Width="125"/>
+                                        <DataGridTextColumn Header="Kode" Binding="{Binding Kode}" Width="90"/>
+                                        <DataGridTextColumn Header="Nama" Binding="{Binding Nama}" Width="*"/>
+                                        <DataGridTextColumn Header="Jenis" Binding="{Binding Jenis}" Width="70"/>
+                                        <DataGridTextColumn Header="+/-" Binding="{Binding Perubahan}" Width="60"/>
+                                        <DataGridTextColumn Header="Stok Akhir" Binding="{Binding StokSesudah}" Width="80"/>
+                                        <DataGridTextColumn Header="Keterangan" Binding="{Binding Keterangan}" Width="170"/>
+                                    </DataGrid.Columns>
+                                </DataGrid>
+                            </DockPanel>
+                        </Border>
+                        <Border Grid.Column="1" Style="{StaticResource Card}">
+                            <StackPanel>
+                                <TextBlock Text="Barang Masuk / Keluar" FontWeight="Bold" FontSize="15" Margin="0,0,0,12"/>
+                                <TextBlock Text="Produk" FontSize="12" Foreground="#64748B"/>
+                                <ComboBox x:Name="CmbStokProduk" Margin="0,4,0,4" DisplayMemberPath="DisplayStok" SelectionChanged="CmbStokProduk_SelectionChanged"/>
+                                <TextBlock x:Name="TxtStokSaatIni" Text="Stok saat ini: -" FontSize="12" FontWeight="Bold" Foreground="#0F172A" Margin="0,0,0,10"/>
+                                <TextBlock Text="Jenis" FontSize="12" Foreground="#64748B"/>
+                                <ComboBox x:Name="CmbJenisStok" Margin="0,4,0,10">
+                                    <ComboBoxItem Content="Masuk" IsSelected="True"/>
+                                    <ComboBoxItem Content="Keluar"/>
+                                </ComboBox>
+                                <TextBlock Text="Jumlah (Qty)" FontSize="12" Foreground="#64748B"/>
+                                <TextBox x:Name="TxtStokQty" Margin="0,4,0,10"/>
+                                <TextBlock Text="Keterangan" FontSize="12" Foreground="#64748B"/>
+                                <ComboBox x:Name="CmbStokKet" Margin="0,4,0,14" IsEditable="True" Text="Restok supplier">
+                                    <ComboBoxItem Content="Restok supplier"/>
+                                    <ComboBoxItem Content="Retur supplier"/>
+                                    <ComboBoxItem Content="Barang rusak"/>
+                                    <ComboBoxItem Content="Barang hilang"/>
+                                    <ComboBoxItem Content="Koreksi stok"/>
+                                    <ComboBoxItem Content="Penyesuaian manual"/>
+                                </ComboBox>
+                                <Button Content="Simpan" Style="{StaticResource PrimaryButton}" Click="BtnSimpanStok_Click"/>
+                            </StackPanel>
+                        </Border>
+                    </Grid>
+
+                    <!-- ===== RIWAYAT (F4) ===== -->
+                    <Grid x:Name="PageRiwayat" Visibility="Collapsed">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="380"/>
+                        </Grid.ColumnDefinitions>
+                        <Border Grid.Column="0" Style="{StaticResource Card}" Margin="0,0,12,0">
+                            <DockPanel>
+                                <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,8">
+                                    <TextBlock Text="Riwayat Transaksi" FontWeight="Bold" FontSize="15" VerticalAlignment="Center"/>
+                                    <Button Content="Hapus Semua" Style="{StaticResource DangerButton}" Margin="16,0,0,0" Padding="10,5" Click="BtnHapusRiwayat_Click"/>
+                                </StackPanel>
+                                <TextBox x:Name="TxtCariRiwayat" DockPanel.Dock="Top" Margin="0,0,0,10" TextChanged="TxtCariRiwayat_TextChanged"/>
+                                <DataGrid x:Name="DgRiwayat" SelectionChanged="DgRiwayat_SelectionChanged" VerticalScrollBarVisibility="Auto">
+                                    <DataGrid.Columns>
+                                        <DataGridTextColumn Header="ID" Binding="{Binding Id}" Width="120"/>
+                                        <DataGridTextColumn Header="Tanggal" Binding="{Binding TanggalStr}" Width="130"/>
+                                        <DataGridTextColumn Header="Metode" Binding="{Binding MetodeBayar}" Width="90"/>
+                                        <DataGridTextColumn Header="Item" Binding="{Binding JumlahItem}" Width="50"/>
+                                        <DataGridTextColumn Header="Total" Binding="{Binding TotalRp}" Width="*"/>
+                                    </DataGrid.Columns>
+                                </DataGrid>
+                            </DockPanel>
+                        </Border>
+                        <Border Grid.Column="1" Style="{StaticResource Card}">
+                            <DockPanel>
+                                <TextBlock x:Name="TxtDetailJudul" Text="Detail Transaksi" FontWeight="Bold" FontSize="15" DockPanel.Dock="Top" Margin="0,0,0,8"/>
+                                <DataGrid x:Name="DgRiwayatDetail" DockPanel.Dock="Top" Height="300">
+                                    <DataGrid.Columns>
+                                        <DataGridTextColumn Header="Nama" Binding="{Binding Nama}" Width="*"/>
+                                        <DataGridTextColumn Header="Qty" Binding="{Binding Qty}" Width="45"/>
+                                        <DataGridTextColumn Header="Subtotal" Binding="{Binding SubtotalRp}" Width="105"/>
+                                    </DataGrid.Columns>
+                                </DataGrid>
+                                <TextBlock x:Name="TxtDetailTotal" Text="" FontWeight="Bold" FontSize="13" DockPanel.Dock="Top" Margin="0,10,0,0" TextWrapping="Wrap"/>
+                                <Button Content="F7 - Cetak Struk (PDF)" Style="{StaticResource PrimaryButton}" DockPanel.Dock="Bottom" Margin="0,12,0,0" Click="BtnCetakStruk_Click"/>
+                            </DockPanel>
+                        </Border>
+                    </Grid>
+
+                    <!-- ===== LAPORAN (F5) ===== -->
+                    <StackPanel x:Name="PageLaporan" Visibility="Collapsed">
+                        <Border Style="{StaticResource Card}">
+                            <WrapPanel VerticalAlignment="Center">
+                                <TextBlock Text="Periode:" FontWeight="Bold" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                <DatePicker x:Name="DpDari" Width="150" Margin="0,0,8,0"/>
+                                <DatePicker x:Name="DpSampai" Width="150" Margin="0,0,8,0"/>
+                                <Button Content="Terapkan" Style="{StaticResource PrimaryButton}" Padding="16,6" Click="BtnTerapkanFilter_Click" Margin="0,0,8,0"/>
+                                <Button Content="Hari Ini" Style="{StaticResource GhostButton}" Padding="16,6" Click="BtnHariIni_Click" Margin="0,0,8,0"/>
+                                <Button Content="F8 - Export PDF" Style="{StaticResource PrimaryButton}" Padding="16,6" Click="BtnExportPdf_Click" Margin="0,0,8,0"/>
+                                <Button Content="F9 - Export Excel (CSV)" Style="{StaticResource SuccessButton}" Padding="16,6" Click="BtnExportExcel_Click"/>
+                            </WrapPanel>
+                        </Border>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Border Grid.Column="0" Style="{StaticResource Card}" Margin="0,0,8,12" Background="#DBEAFE" BorderBrush="#BFDBFE">
+                                <StackPanel>
+                                    <TextBlock Text="Omzet Periode" FontSize="12" Foreground="#1E40AF"/>
+                                    <TextBlock x:Name="CardOmzet" Text="Rp 0" FontSize="18" FontWeight="ExtraBold" Foreground="#1E3A8A"/>
+                                </StackPanel>
+                            </Border>
+                            <Border Grid.Column="1" Style="{StaticResource Card}" Margin="4,0,8,12" Background="#DCFCE7" BorderBrush="#BBF7D0">
+                                <StackPanel>
+                                    <TextBlock Text="Laba Estimasi" FontSize="12" Foreground="#166534"/>
+                                    <TextBlock x:Name="CardLaba" Text="Rp 0" FontSize="18" FontWeight="ExtraBold" Foreground="#14532D"/>
+                                </StackPanel>
+                            </Border>
+                            <Border Grid.Column="2" Style="{StaticResource Card}" Margin="4,0,8,12" Background="#FEF3C7" BorderBrush="#FDE68A">
+                                <StackPanel>
+                                    <TextBlock Text="Transaksi" FontSize="12" Foreground="#92400E"/>
+                                    <TextBlock x:Name="CardTransaksi" Text="0" FontSize="18" FontWeight="ExtraBold" Foreground="#78350F"/>
+                                </StackPanel>
+                            </Border>
+                            <Border Grid.Column="3" Style="{StaticResource Card}" Margin="4,0,8,12" Background="#F3E8FF" BorderBrush="#DDD6FE">
+                                <StackPanel>
+                                    <TextBlock Text="Item Terjual" FontSize="12" Foreground="#6B21A8"/>
+                                    <TextBlock x:Name="CardItem" Text="0" FontSize="18" FontWeight="ExtraBold" Foreground="#581C87"/>
+                                </StackPanel>
+                            </Border>
+                            <Border Grid.Column="4" Style="{StaticResource Card}" Margin="4,0,0,12" Background="#FFF1F2" BorderBrush="#FECDD3">
+                                <StackPanel>
+                                    <TextBlock Text="Rata-rata/Nota" FontSize="12" Foreground="#9F1239"/>
+                                    <TextBlock x:Name="CardRata" Text="Rp 0" FontSize="18" FontWeight="ExtraBold" Foreground="#881337"/>
+                                </StackPanel>
+                            </Border>
+                        </Grid>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Border Grid.Column="0" Style="{StaticResource Card}" Margin="0,0,6,0">
+                                <DockPanel>
+                                    <TextBlock Text="Produk Terlaris" FontWeight="Bold" FontSize="15" DockPanel.Dock="Top" Margin="0,0,0,8"/>
+                                    <DataGrid x:Name="DgLaris" Height="280">
+                                        <DataGrid.Columns>
+                                            <DataGridTextColumn Header="Produk" Binding="{Binding Nama}" Width="*"/>
+                                            <DataGridTextColumn Header="Terjual" Binding="{Binding Terjual}" Width="65"/>
+                                            <DataGridTextColumn Header="Omzet" Binding="{Binding OmzetRp}" Width="110"/>
+                                            <DataGridTextColumn Header="Laba" Binding="{Binding LabaRp}" Width="110"/>
+                                        </DataGrid.Columns>
+                                    </DataGrid>
+                                </DockPanel>
+                            </Border>
+                            <Border Grid.Column="1" Style="{StaticResource Card}" Margin="6,0,0,0">
+                                <StackPanel>
+                                    <TextBlock Text="Ringkasan" FontWeight="Bold" FontSize="15" Margin="0,0,0,8"/>
+                                    <TextBlock x:Name="TxtRingkasan" Text="-" FontSize="13" Foreground="#334155" TextWrapping="Wrap"/>
+                                    <TextBlock x:Name="TxtExportInfo" Text="File tersimpan di Documents/KasirKu/Laporan/" FontSize="11" Foreground="#94A3B8" TextWrapping="Wrap" Margin="0,12,0,0"/>
+                                </StackPanel>
+                            </Border>
+                        </Grid>
+                    </StackPanel>
+
+                    <!-- ===== PENGATURAN (F6) ===== -->
+                    <Grid x:Name="PagePengaturan" Visibility="Collapsed">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="420"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+
+                        <!-- Profil Toko & Printer Thermal -->
+                        <Border Grid.Column="0" Style="{StaticResource Card}" VerticalAlignment="Top" Margin="0,0,14,0">
+                            <StackPanel>
+                                <TextBlock Text="Pengaturan Toko &amp; Kasir" FontWeight="Bold" FontSize="15" Margin="0,0,0,14"/>
+                                <TextBlock Text="Nama Toko (tampil di struk &amp; laporan)" FontSize="12" Foreground="#64748B"/>
+                                <TextBox x:Name="TxtNamaToko" Margin="0,3,0,8"/>
+                                <TextBlock Text="Alamat" FontSize="12" Foreground="#64748B"/>
+                                <TextBox x:Name="TxtAlamatToko" Margin="0,3,0,8"/>
+                                <TextBlock Text="Telepon" FontSize="12" Foreground="#64748B"/>
+                                <TextBox x:Name="TxtTelpToko" Margin="0,3,0,8"/>
+                                <TextBlock Text="Footer Struk" FontSize="12" Foreground="#64748B"/>
+                                <TextBox x:Name="TxtFooterStruk" Margin="0,3,0,12"/>
+
+                                <Border Height="1" Background="#E2E8F0" Margin="0,4,0,12"/>
+
+                                <TextBlock Text="Printer Thermal (Struk &amp; Kasir)" FontWeight="Bold" FontSize="13" Foreground="#0F172A" Margin="0,0,0,8"/>
+                                <TextBlock Text="Nama Printer Windows" FontSize="12" Foreground="#64748B"/>
+                                <Grid Margin="0,3,0,8">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <ComboBox x:Name="CmbPrinterName" IsEditable="True"/>
+                                    <Button Grid.Column="1" Content="Cek" Style="{StaticResource GhostButton}" Margin="6,0,0,0" Padding="8,6" Click="BtnRefreshPrinter_Click" ToolTip="Muat ulang daftar printer Windows"/>
+                                </Grid>
+
+                                <TextBlock Text="Lebar Kertas Thermal" FontSize="12" Foreground="#64748B"/>
+                                <ComboBox x:Name="CmbLebarKertas" Margin="0,3,0,8">
+                                    <ComboBoxItem Content="80 mm (Standar Kasir 48 Kolom)" IsSelected="True"/>
+                                    <ComboBoxItem Content="58 mm (Mini Thermal 32 Kolom)"/>
+                                </ComboBox>
+
+                                <CheckBox x:Name="ChkAutoCetakStruk" Content="Cetak struk otomatis setelah bayar" Margin="0,4,0,4" FontSize="12" IsChecked="True"/>
+                                <CheckBox x:Name="ChkKickDrawer" Content="Buka laci kasir (Cash Drawer) otomatis" Margin="0,0,0,12" FontSize="12" IsChecked="True"/>
+
+                                <Grid Margin="0,0,0,10">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <Button Grid.Column="0" Content="Test Print" Style="{StaticResource GhostButton}" Margin="0,0,4,0" Click="BtnTestPrint_Click"/>
+                                    <Button Grid.Column="1" Content="Buka Laci" Style="{StaticResource GhostButton}" Margin="4,0,0,0" Click="BtnBukaLaci_Click"/>
+                                </Grid>
+
+                                <Button Content="Simpan Pengaturan" Style="{StaticResource SuccessButton}" Click="BtnSimpanPengaturan_Click" Margin="0,4,0,0"/>
+                                <TextBlock Text="Pengaturan ini dipakai bersama oleh aplikasi POS dan Manager." FontSize="11" Foreground="#94A3B8" TextWrapping="Wrap" Margin="0,10,0,0"/>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Manajemen Pengguna (CRUD) -->
+                        <Border Grid.Column="1" Style="{StaticResource Card}" VerticalAlignment="Top">
+                            <DockPanel>
+                                <TextBlock Text="Manajemen Akun / Pengguna" FontWeight="Bold" FontSize="15" DockPanel.Dock="Top" Margin="0,0,0,6"/>
+                                <TextBlock Text="Kelola akun kasir dan manajer yang dapat login." FontSize="12" Foreground="#64748B" DockPanel.Dock="Top" Margin="0,0,0,12"/>
+
+                                <!-- Form Tambah User -->
+                                <Border DockPanel.Dock="Top" Background="#F8FAFC" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="10" Padding="12" Margin="0,0,0,12">
+                                    <StackPanel>
+                                        <TextBlock Text="Tambah Akun Baru" FontWeight="Bold" FontSize="13" Foreground="#0F172A" Margin="0,0,0,8"/>
+                                        <Grid Margin="0,0,0,6">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="*"/>
+                                            </Grid.ColumnDefinitions>
+                                            <StackPanel Grid.Column="0" Margin="0,0,6,0">
+                                                <TextBlock Text="Username" FontSize="11" Foreground="#64748B"/>
+                                                <TextBox x:Name="TxtNewUsername" Margin="0,2,0,0"/>
+                                            </StackPanel>
+                                            <StackPanel Grid.Column="1" Margin="6,0,0,0">
+                                                <TextBlock Text="Nama Lengkap" FontSize="11" Foreground="#64748B"/>
+                                                <TextBox x:Name="TxtNewNamaLengkap" Margin="0,2,0,0"/>
+                                            </StackPanel>
+                                        </Grid>
+                                        <Grid Margin="0,0,0,8">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="*"/>
+                                            </Grid.ColumnDefinitions>
+                                            <StackPanel Grid.Column="0" Margin="0,0,6,0">
+                                                <TextBlock Text="Role" FontSize="11" Foreground="#64748B"/>
+                                                <ComboBox x:Name="CmbNewRole" Margin="0,2,0,0">
+                                                    <ComboBoxItem Content="Kasir" IsSelected="True"/>
+                                                    <ComboBoxItem Content="Manager"/>
+                                                </ComboBox>
+                                            </StackPanel>
+                                            <StackPanel Grid.Column="1" Margin="6,0,0,0">
+                                                <TextBlock Text="Password" FontSize="11" Foreground="#64748B"/>
+                                                <PasswordBox x:Name="TxtNewPassword" Margin="0,2,0,0" Padding="10,8" FontSize="13" Background="White" BorderBrush="#CBD5E1" BorderThickness="1"/>
+                                            </StackPanel>
+                                        </Grid>
+                                        <Button Content="+ Tambah Pengguna" Style="{StaticResource PrimaryButton}" HorizontalAlignment="Right" Click="BtnTambahUser_Click"/>
+                                    </StackPanel>
+                                </Border>
+
+                                <!-- Tabel User -->
+                                <DataGrid x:Name="DgUsers" AutoGenerateColumns="False" CanUserAddRows="False" CanUserDeleteRows="False" IsReadOnly="True" Height="240">
+                                    <DataGrid.Columns>
+                                        <DataGridTextColumn Header="Username" Binding="{Binding Username}" Width="100"/>
+                                        <DataGridTextColumn Header="Nama Lengkap" Binding="{Binding NamaLengkap}" Width="*"/>
+                                        <DataGridTextColumn Header="Role" Binding="{Binding Role}" Width="85"/>
+                                        <DataGridCheckBoxColumn Header="Aktif" Binding="{Binding Aktif}" Width="55"/>
+                                        <DataGridTemplateColumn Header="Aksi" Width="130">
+                                            <DataGridTemplateColumn.CellTemplate>
+                                                <DataTemplate>
+                                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                                        <Button Content="Status" FontSize="11" Padding="6,3" Margin="0,0,4,0"
+                                                                Style="{StaticResource GhostButton}"
+                                                                Click="BtnToggleAktifUser_Click" Tag="{Binding}"/>
+                                                        <Button Content="Hapus" FontSize="11" Padding="6,3"
+                                                                Style="{StaticResource SmallRedButton}"
+                                                                Click="BtnHapusUser_Click" Tag="{Binding}"/>
+                                                    </StackPanel>
+                                                </DataTemplate>
+                                            </DataGridTemplateColumn.CellTemplate>
+                                        </DataGridTemplateColumn>
+                                    </DataGrid.Columns>
+                                </DataGrid>
+                            </DockPanel>
+                        </Border>
+                    </Grid>
+
+                </Grid>
+            </ScrollViewer>
+        </Grid>
+    </Grid>
+</Window>

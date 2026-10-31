@@ -1,7 +1,7 @@
 using System.IO;
 using System.Text;
 
-namespace KasirKu.Services
+namespace KasirKu.Shared.Services
 {
     /// <summary>
     /// Satu baris teks untuk PDF. Bold memakai Helvetica-Bold.
@@ -26,12 +26,8 @@ namespace KasirKu.Services
             // Pecah baris menjadi halaman-halaman
             var pages = Paginate(lines, pageHeight, margin);
 
-            var objects = new List<byte[]>();
-            // Placeholder, index 0 = obj 1. Kita rakit belakangan dengan nomor pasti.
             // Urutan: 1=Catalog, 2=Pages, lalu per halaman: Page + Content, lalu 2 font di akhir.
-
             int pageCount = pages.Count;
-            // Nomor objek: 1 catalog, 2 pages, mulai 3 untuk page/content
             var pageObjNums = new List<int>();
             var contentObjNums = new List<int>();
             int next = 3;

@@ -1,6 +1,6 @@
 using System.ComponentModel;
 
-namespace KasirKu.Models
+namespace KasirKu.Shared.Models
 {
     public class CartItem : INotifyPropertyChanged
     {
