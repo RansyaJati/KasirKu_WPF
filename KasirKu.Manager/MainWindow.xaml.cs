@@ -105,23 +105,11 @@ namespace KasirKu.Manager
 
         private void BtnLogout_Click(object sender, RoutedEventArgs e)
         {
-            var jawab = MessageBox.Show("Apakah Anda yakin ingin logout?", "Konfirmasi Logout",
+            var jawab = MessageBox.Show("Apakah Anda yakin ingin keluar dari aplikasi KasirKu Manager?", "Konfirmasi Keluar",
                 MessageBoxButton.YesNo, MessageBoxImage.Question);
             if (jawab != MessageBoxResult.Yes) return;
 
-            var login = new LoginWindow();
-            if (login.ShowDialog() == true && login.LoggedInUser != null)
-            {
-                _loggedInUser = login.LoggedInUser;
-                TxtUserLogin.Text = $"Login: {_loggedInUser.NamaLengkap}";
-                MuatDariDisk();
-                MuatDataUser();
-                ShowPage("Dashboard");
-            }
-            else
-            {
-                Close();
-            }
+            Application.Current.Shutdown();
         }
 
         // =========== NAVIGASI ===========

@@ -221,13 +221,15 @@
                     <Button x:Name="BtnF6Reset" Style="{StaticResource FButton}" Content="F6 - Reset" Click="BtnResetKeranjang_Click"/>
                     <Border Width="1" Background="#334155" Margin="8,4"/>
                     <Button x:Name="BtnF7Struk" Style="{StaticResource FButton}" Content="F7 - Cetak Struk" Click="BtnCetakStruk_Click"/>
+                    <Button x:Name="BtnF8Printer" Style="{StaticResource FButton}" Content="F8 - Printer" Click="BtnF8Printer_Click"/>
+                    <Button x:Name="BtnBukaLaciTop" Style="{StaticResource FButton}" Content="Buka Laci" Click="BtnBukaLaciKasir_Click"/>
                 </WrapPanel>
                 <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
                     <StackPanel VerticalAlignment="Center" Margin="0,0,12,0">
                         <TextBlock x:Name="TxtUserInfo" Text="KASIR POS" Foreground="#64748B" FontSize="10" FontWeight="Bold" HorizontalAlignment="Right"/>
                         <TextBlock Text="Scan barcode + Enter" Foreground="#94A3B8" FontSize="11" HorizontalAlignment="Right"/>
                     </StackPanel>
-                    <Button x:Name="BtnKeluar" Style="{StaticResource DangerFButton}" Content="Logout (Esc)" Padding="14,8" Click="BtnKeluar_Click"/>
+                    <Button x:Name="BtnKeluar" Style="{StaticResource DangerFButton}" Content="Keluar (Esc)" Padding="14,8" Click="BtnKeluar_Click"/>
                 </StackPanel>
             </Grid>
         </Border>
@@ -341,6 +343,14 @@
                                     </Grid.ColumnDefinitions>
                                     <Button Grid.Column="0" Content="F6 Reset" Margin="0,0,6,0" Style="{StaticResource GhostButton}" Click="BtnResetKeranjang_Click"/>
                                     <Button Grid.Column="1" Content="F5 BAYAR" Margin="6,0,0,0" Style="{StaticResource SuccessButton}" Click="BtnBayar_Click"/>
+                                </Grid>
+                                <Grid Margin="0,8,0,0">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <Button Grid.Column="0" Content="Buka Laci" Margin="0,0,6,0" Style="{StaticResource GhostButton}" Click="BtnBukaLaciKasir_Click"/>
+                                    <Button Grid.Column="1" Content="F8 Printer" Margin="6,0,0,0" Style="{StaticResource GhostButton}" Click="BtnF8Printer_Click"/>
                                 </Grid>
                             </StackPanel>
                         </ScrollViewer>
@@ -483,5 +493,56 @@
                 <TextBlock Grid.Column="2" x:Name="TxtInfoGlobal" Text="0 transaksi hari ini" Foreground="White" FontSize="12" FontWeight="Bold" VerticalAlignment="Center"/>
             </Grid>
         </Border>
+
+        <!-- MODAL OVERLAY PENGATURAN PRINTER THERMAL (F8) -->
+        <Grid x:Name="ModalPrinter" Visibility="Collapsed" Grid.RowSpan="4" Panel.ZIndex="999" Background="#88000000">
+            <Border Background="White" CornerRadius="16" Width="460" Padding="24" HorizontalAlignment="Center" VerticalAlignment="Center" BorderBrush="#CBD5E1" BorderThickness="1">
+                <StackPanel>
+                    <DockPanel Margin="0,0,0,16">
+                        <Button Content="X" DockPanel.Dock="Right" Style="{StaticResource SmallRedButton}" Width="28" Height="28" Click="BtnTutupModalPrinter_Click"/>
+                        <TextBlock Text="Pengaturan Printer Thermal (Struk &amp; Kasir)" FontWeight="Bold" FontSize="16" Foreground="#0F172A" VerticalAlignment="Center"/>
+                    </DockPanel>
+
+                    <TextBlock Text="Nama Printer Windows" FontSize="12" Foreground="#64748B" Margin="0,0,0,4"/>
+                    <Grid Margin="0,0,0,12">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <ComboBox x:Name="CmbModalPrinterName" IsEditable="True"/>
+                        <Button Grid.Column="1" Content="Cek" Style="{StaticResource GhostButton}" Margin="6,0,0,0" Padding="12,6" Click="BtnModalRefreshPrinter_Click" ToolTip="Muat ulang daftar printer Windows"/>
+                    </Grid>
+
+                    <TextBlock Text="Lebar Kertas Thermal" FontSize="12" Foreground="#64748B" Margin="0,0,0,4"/>
+                    <ComboBox x:Name="CmbModalLebarKertas" Margin="0,0,0,12">
+                        <ComboBoxItem Content="80 mm (Standar Kasir 48 Kolom)" IsSelected="True"/>
+                        <ComboBoxItem Content="58 mm (Mini Thermal 32 Kolom)"/>
+                    </ComboBox>
+
+                    <CheckBox x:Name="ChkModalAutoCetakStruk" Content="Cetak struk otomatis setelah bayar" Margin="0,0,0,6" FontSize="13" IsChecked="True"/>
+                    <CheckBox x:Name="ChkModalKickDrawer" Content="Buka laci kasir (Cash Drawer) otomatis" Margin="0,0,0,16" FontSize="13" IsChecked="True"/>
+
+                    <Grid Margin="0,0,0,16">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Button Grid.Column="0" Content="Test Print" Style="{StaticResource GhostButton}" Margin="0,0,6,0" Click="BtnModalTestPrint_Click"/>
+                        <Button Grid.Column="1" Content="Buka Laci" Style="{StaticResource GhostButton}" Margin="6,0,0,0" Click="BtnModalBukaLaci_Click"/>
+                    </Grid>
+
+                    <Border Height="1" Background="#E2E8F0" Margin="0,0,0,16"/>
+
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Button Grid.Column="0" Content="Tutup" Style="{StaticResource GhostButton}" Margin="0,0,6,0" Click="BtnTutupModalPrinter_Click"/>
+                        <Button Grid.Column="1" Content="Simpan Pengaturan" Style="{StaticResource SuccessButton}" Margin="6,0,0,0" Click="BtnSimpanModalPrinter_Click"/>
+                    </Grid>
+                </StackPanel>
+            </Border>
+        </Grid>
     </Grid>
 </Window>

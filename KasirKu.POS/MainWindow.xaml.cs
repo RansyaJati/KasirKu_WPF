@@ -145,9 +145,23 @@ namespace KasirKu.POS
                 case Key.F5: BtnBayar_Click(this, new RoutedEventArgs()); e.Handled = true; break;
                 case Key.F6: BtnResetKeranjang_Click(this, new RoutedEventArgs()); e.Handled = true; break;
                 case Key.F7: BtnCetakStruk_Click(this, new RoutedEventArgs()); e.Handled = true; break;
+                case Key.F8: BukaModalPrinter(); e.Handled = true; break;
                 case Key.Escape:
-                    if (_halaman != "Kasir") { ShowPage("Kasir"); e.Handled = true; }
-                    else { BtnKeluar_Click(this, new RoutedEventArgs()); e.Handled = true; }
+                    if (ModalPrinter.Visibility == Visibility.Visible)
+                    {
+                        TutupModalPrinter();
+                        e.Handled = true;
+                    }
+                    else if (_halaman != "Kasir")
+                    {
+                        ShowPage("Kasir");
+                        e.Handled = true;
+                    }
+                    else
+                    {
+                        BtnKeluar_Click(this, new RoutedEventArgs());
+                        e.Handled = true;
+                    }
                     break;
             }
         }
@@ -163,26 +177,133 @@ namespace KasirKu.POS
             if (_cart.Count > 0)
             {
                 var jawab = MessageBox.Show(
-                    "Masih ada barang di keranjang yang belum dibayar.\n\nTetap logout?",
-                    "Konfirmasi Logout", MessageBoxButton.YesNo, MessageBoxImage.Warning);
+                    "Masih ada barang di keranjang yang belum dibayar.\n\nTetap keluar aplikasi?",
+                    "Konfirmasi Keluar", MessageBoxButton.YesNo, MessageBoxImage.Warning);
                 if (jawab != MessageBoxResult.Yes) return;
-            }
-
-            // Logout → tampilkan login lagi
-            var login = new LoginWindow();
-            if (login.ShowDialog() == true && login.LoggedInUser != null)
-            {
-                _loggedInUser = login.LoggedInUser;
-                TxtUserInfo.Text = $"Kasir: {_loggedInUser.NamaLengkap}";
-                _cart.Clear();
-                RefreshSemua();
-                ShowPage("Kasir");
-                FocusScan();
             }
             else
             {
-                Close();
+                var jawab = MessageBox.Show(
+                    "Apakah Anda yakin ingin keluar dari aplikasi KasirKu?",
+                    "Konfirmasi Keluar", MessageBoxButton.YesNo, MessageBoxImage.Question);
+                if (jawab != MessageBoxResult.Yes) return;
             }
+
+            // Langsung keluar aplikasi (tidak memunculkan login window lagi)
+            Application.Current.Shutdown();
+        }
+
+        // =========== PENGATURAN PRINTER & BUKA LACI DI SISI KASIR ===========
+        private void BtnBukaLaciKasir_Click(object sender, RoutedEventArgs e)
+        {
+            _settings = DataStorageService.LoadSettings();
+            var hasil = ThermalPrintService.BukaLaci(_settings);
+            if (hasil.Success)
+            {
+                SetScanStatus("Laci kasir (Cash Drawer) berhasil dibuka.");
+            }
+            else
+            {
+                MessageBox.Show(hasil.Message, "Buka Laci", MessageBoxButton.OK, MessageBoxImage.Warning);
+            }
+            FocusScan();
+        }
+
+        private void BtnF8Printer_Click(object sender, RoutedEventArgs e) => BukaModalPrinter();
+
+        private void BukaModalPrinter()
+        {
+            _settings = DataStorageService.LoadSettings();
+
+            // Isi daftar printer yang terpasang
+            MuatDaftarPrinterModal();
+
+            if (CmbModalLebarKertas != null)
+                CmbModalLebarKertas.SelectedIndex = _settings.PaperWidthMm <= 58 ? 1 : 0;
+
+            if (ChkModalAutoCetakStruk != null)
+                ChkModalAutoCetakStruk.IsChecked = _settings.AutoPrintReceipt;
+
+            if (ChkModalKickDrawer != null)
+                ChkModalKickDrawer.IsChecked = _settings.KickDrawer;
+
+            ModalPrinter.Visibility = Visibility.Visible;
+        }
+
+        private void MuatDaftarPrinterModal()
+        {
+            if (CmbModalPrinterName == null) return;
+            string current = _settings.PrinterName;
+            var list = RawPrinterHelper.GetInstalledPrinters();
+            CmbModalPrinterName.Items.Clear();
+            foreach (var p in list)
+            {
+                CmbModalPrinterName.Items.Add(p);
+            }
+
+            if (!string.IsNullOrWhiteSpace(current))
+            {
+                if (!CmbModalPrinterName.Items.Contains(current))
+                {
+                    CmbModalPrinterName.Items.Add(current);
+                }
+                CmbModalPrinterName.Text = current;
+                CmbModalPrinterName.SelectedItem = current;
+            }
+            else if (CmbModalPrinterName.Items.Count > 0)
+            {
+                CmbModalPrinterName.SelectedIndex = 0;
+            }
+        }
+
+        private void BtnModalRefreshPrinter_Click(object sender, RoutedEventArgs e)
+        {
+            MuatDaftarPrinterModal();
+            MessageBox.Show($"Ditemukan {CmbModalPrinterName.Items.Count} printer Windows terpasang.", "Daftar Printer", MessageBoxButton.OK, MessageBoxImage.Information);
+        }
+
+        private void TutupModalPrinter()
+        {
+            ModalPrinter.Visibility = Visibility.Collapsed;
+            FocusScan();
+        }
+
+        private void BtnTutupModalPrinter_Click(object sender, RoutedEventArgs e) => TutupModalPrinter();
+
+        private void SimpanStateModalKeSettings()
+        {
+            _settings.PrinterName = CmbModalPrinterName?.Text?.Trim() ?? "";
+            _settings.PaperWidthMm = (CmbModalLebarKertas?.SelectedIndex == 1) ? 58 : 80;
+            _settings.AutoPrintReceipt = ChkModalAutoCetakStruk?.IsChecked == true;
+            _settings.KickDrawer = ChkModalKickDrawer?.IsChecked == true;
+        }
+
+        private void BtnModalTestPrint_Click(object sender, RoutedEventArgs e)
+        {
+            SimpanStateModalKeSettings();
+            var hasil = ThermalPrintService.CetakTest(_settings);
+            if (hasil.Success)
+                MessageBox.Show(hasil.Message, "Test Print Berhasil", MessageBoxButton.OK, MessageBoxImage.Information);
+            else
+                MessageBox.Show(hasil.Message, "Test Print Gagal", MessageBoxButton.OK, MessageBoxImage.Warning);
+        }
+
+        private void BtnModalBukaLaci_Click(object sender, RoutedEventArgs e)
+        {
+            SimpanStateModalKeSettings();
+            var hasil = ThermalPrintService.BukaLaci(_settings);
+            if (hasil.Success)
+                MessageBox.Show(hasil.Message, "Buka Laci", MessageBoxButton.OK, MessageBoxImage.Information);
+            else
+                MessageBox.Show(hasil.Message, "Buka Laci Gagal", MessageBoxButton.OK, MessageBoxImage.Warning);
+        }
+
+        private void BtnSimpanModalPrinter_Click(object sender, RoutedEventArgs e)
+        {
+            SimpanStateModalKeSettings();
+            DataStorageService.SaveSettings(_settings);
+            MessageBox.Show("Pengaturan printer thermal berhasil disimpan!", "Sukses", MessageBoxButton.OK, MessageBoxImage.Information);
+            TutupModalPrinter();
         }
 
         private void ShowPage(string page)

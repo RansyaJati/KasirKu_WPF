@@ -185,7 +185,7 @@
                     <Border Background="#1E293B" CornerRadius="8" Padding="10,8" Margin="0,0,0,8">
                         <TextBlock x:Name="TxtUserLogin" Text="Login: -" Foreground="#94A3B8" FontSize="11" FontWeight="Bold" TextWrapping="Wrap"/>
                     </Border>
-                    <Button x:Name="BtnLogout" Style="{StaticResource SideButton}" Content="Logout" Foreground="#F87171" Click="BtnLogout_Click"/>
+                    <Button x:Name="BtnLogout" Style="{StaticResource SideButton}" Content="Keluar (Esc)" Foreground="#F87171" Click="BtnLogout_Click"/>
                     <Button x:Name="BtnRefreshData" Style="{StaticResource SideButton}" Content="F10 - Refresh Data" Click="BtnRefreshData_Click"/>
                     <TextBlock x:Name="TxtLastRefresh" Text="" Foreground="#475569" FontSize="10" Margin="8,4,0,0" TextWrapping="Wrap"/>
                 </StackPanel>

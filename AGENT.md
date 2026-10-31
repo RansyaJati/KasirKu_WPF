@@ -58,7 +58,7 @@ KasirKu.Manager/                 <- net10.0-windows WinExe, ref Shared
 ### KasirKu.POS (Window_PreviewKeyDown)
 F1=Kasir, F2=Cek Barang (read-only), F3=Riwayat Hari Ini, F4=Rekap Shift,
 F5=BtnBayar_Click, F6=BtnResetKeranjang_Click, F7=BtnCetakStruk_Click,
-Esc=Kembali ke Kasir / Keluar (konfirmasi jika keranjang isi).
+F8=BukaModalPrinter, Esc=Tutup Modal / Kembali ke Kasir / Keluar (konfirmasi).
 Enter di TxtScan=ProsesScan(), Enter di TxtBayar=BtnBayar_Click.
 
 ### KasirKu.Manager (Window_PreviewKeyDown)

@@ -60,7 +60,8 @@ Fullscreen (`WindowStyle=None`, `WindowState=Maximized`). Dioptimalkan untuk sca
 | F5 | Bayar |
 | F6 | Reset Keranjang |
 | F7 | Cetak Struk (Thermal / PDF) |
-| Esc | Kembali ke Kasir / Keluar (konfirmasi) |
+| F8 | Pengaturan Printer Thermal & Test Print |
+| Esc | Tutup Modal / Kembali ke Kasir / Keluar (konfirmasi) |
 | Enter di Scan | Masukkan barang ke keranjang |
 | Enter di Bayar | Bayar langsung |
 
