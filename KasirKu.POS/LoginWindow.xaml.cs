@@ -20,6 +20,17 @@ namespace KasirKu.POS
 
         private void BtnLogin_Click(object sender, RoutedEventArgs e) => DoLogin();
 
+        private void TxtUsername_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.Enter)
+            {
+                if (string.IsNullOrEmpty(TxtPassword.Password))
+                    TxtPassword.Focus();
+                else
+                    DoLogin();
+            }
+        }
+
         private void TxtPassword_KeyDown(object sender, KeyEventArgs e)
         {
             if (e.Key == Key.Enter) DoLogin();

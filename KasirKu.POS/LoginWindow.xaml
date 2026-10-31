@@ -50,7 +50,8 @@
                 <TextBlock Text="Username" Foreground="#94A3B8" FontSize="12" FontWeight="Bold" Margin="0,0,0,6"/>
                 <TextBox x:Name="TxtUsername" FontSize="14" Padding="12,10"
                          Background="#1E293B" Foreground="White" CaretBrush="White"
-                         BorderBrush="#334155" BorderThickness="1" Margin="0,0,0,16">
+                         BorderBrush="#334155" BorderThickness="1" Margin="0,0,0,16"
+                         KeyDown="TxtUsername_KeyDown">
                     <TextBox.Resources>
                         <Style TargetType="Border">
                             <Setter Property="CornerRadius" Value="8"/>
@@ -77,7 +78,7 @@
 
                 <!-- Login button -->
                 <Button x:Name="BtnLogin" Content="Masuk" FontSize="14" FontWeight="Bold"
-                        Padding="14,12" Cursor="Hand" Click="BtnLogin_Click"
+                        Padding="14,12" Cursor="Hand" Click="BtnLogin_Click" IsDefault="True"
                         Background="#2563EB" Foreground="White" BorderThickness="0">
                     <Button.Template>
                         <ControlTemplate TargetType="Button">
