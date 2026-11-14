@@ -12,6 +12,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\KasirKu.Shared\KasirKu.Shared.csproj" />
+    <ProjectReference Include="..\KasirKu.UI\KasirKu.UI.csproj" />
   </ItemGroup>
 
   <ItemGroup>

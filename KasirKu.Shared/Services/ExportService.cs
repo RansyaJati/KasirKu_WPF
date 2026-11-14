@@ -14,34 +14,94 @@ namespace KasirKu.Shared.Services
 
         private static string Rp(decimal v) => $"Rp {v:N0}";
 
+        private static string Num(decimal v) =>
+            v.ToString("#,##0", System.Globalization.CultureInfo.InvariantCulture);
+
         private static string NamaToko(StoreSettings? s) =>
             string.IsNullOrWhiteSpace(s?.NamaToko) ? "KASIRKU" : s!.NamaToko;
+
+        private static string Label(string kiri, string kanan, int chars)
+        {
+            int pad = Math.Max(1, chars - kiri.Length - kanan.Length);
+            return kiri + new string(' ', pad) + kanan;
+        }
+
+        private static string TruncateText(string s, int max)
+            => s.Length <= max ? s : s[..(max - 1)] + ".";
 
         // ===== STRUK =====
         public static List<PdfLine> BuildStrukLines(Transaction t, StoreSettings? settings = null)
         {
             var s = settings ?? new StoreSettings();
             var L = new List<PdfLine>();
-            L.Add(new PdfLine { Text = NamaToko(s), Size = 16, Bold = true, Center = true });
-            L.Add(new PdfLine { Text = $"{s.Alamat} - Telp {s.Telepon}", Size = 8, Center = true });
-            L.Add(new PdfLine { Text = new string('-', 38), Size = 9, Center = true });
-            L.Add(new PdfLine { Text = $"{t.Id}  |  {t.Tanggal:dd/MM/yyyy HH:mm}", Size = 9 });
-            L.Add(new PdfLine { Text = $"Metode: {t.MetodeBayar}", Size = 9, Bold = true });
-            L.Add(new PdfLine { Text = new string('-', 38), Size = 9, Center = true });
+            const int W = 46;
+
+            // Logo toko
+            if (s.TampilkanLogo)
+            {
+                var img = LogoService.LoadRgbForPdf(s, 420);
+                if (img.HasValue)
+                {
+                    L.Add(new PdfLine
+                    {
+                        Image = new PdfImage
+                        {
+                            Rgb = img.Value.Rgb,
+                            PixelWidth = img.Value.Width,
+                            PixelHeight = img.Value.Height,
+                            DrawWidth = 165f
+                        }
+                    });
+                }
+            }
+
+            L.Add(new PdfLine { Text = NamaToko(s).ToUpperInvariant(), Size = 15, Bold = true, Center = true });
+            if (!string.IsNullOrWhiteSpace(s.Alamat))
+                L.Add(new PdfLine { Text = s.Alamat, Size = 7.5f, Center = true });
+            if (!string.IsNullOrWhiteSpace(s.Kota))
+                L.Add(new PdfLine { Text = s.Kota, Size = 7.5f, Center = true });
+            if (!string.IsNullOrWhiteSpace(s.Telepon))
+                L.Add(new PdfLine { Text = s.Telepon, Size = 7.5f, Center = true });
+
+            L.Add(new PdfLine { Text = new string('=', W), Size = 8.5f, Center = true });
+
+            L.Add(new PdfLine { Text = Label("No. Nota", t.Id, W), Size = 8.5f });
+            L.Add(new PdfLine { Text = Label("Tanggal", t.Tanggal.ToString("dd-MM-yyyy HH:mm"), W), Size = 8.5f });
+            L.Add(new PdfLine { Text = Label("Kasir", string.IsNullOrWhiteSpace(t.KasirNama) ? "-" : t.KasirNama.ToUpperInvariant(), W), Size = 8.5f });
+            L.Add(new PdfLine { Text = Label("Pembayaran", (t.MetodeBayar ?? "Tunai").ToUpperInvariant(), W), Size = 8.5f });
+
+            L.Add(new PdfLine { Text = new string('-', W), Size = 8.5f, Center = true });
+
             foreach (var i in t.Items)
             {
-                L.Add(new PdfLine { Text = Truncate(i.Nama, 30), Size = 10, Bold = true });
-                L.Add(new PdfLine { Text = $"  {i.Qty} x {Rp(i.Harga),-12} {Rp(i.Subtotal),12}", Size = 9 });
+                L.Add(new PdfLine { Text = TruncateText(i.Nama, W), Size = 9, Bold = true });
+                L.Add(new PdfLine { Text = Label($"  {i.Qty}X {Num(i.Harga)}", $"= {Num(i.Subtotal)}", W), Size = 8.5f });
             }
-            L.Add(new PdfLine { Text = new string('-', 38), Size = 9, Center = true });
-            L.Add(new PdfLine { Text = $"TOTAL   : {Rp(t.Total),20}", Size = 12, Bold = true });
-            L.Add(new PdfLine { Text = $"BAYAR ({t.MetodeBayar}): {Rp(t.Bayar),12}", Size = 10 });
-            L.Add(new PdfLine { Text = $"KEMBALI : {Rp(t.Kembalian),20}", Size = 10 });
-            L.Add(new PdfLine { Text = new string('-', 38), Size = 9, Center = true });
+
+            L.Add(new PdfLine { Text = new string('-', W), Size = 8.5f, Center = true });
+
+            L.Add(new PdfLine { Text = Label($"Qty  {t.JumlahItem} item", "", W), Size = 8.5f });
+            L.Add(new PdfLine { Text = Label("TOTAL", Num(t.Total), W), Size = 13, Bold = true });
+            L.Add(new PdfLine { Text = Label($"BAYAR ({(t.MetodeBayar ?? "Tunai").ToUpperInvariant()})", Num(t.Bayar), W), Size = 9 });
+            L.Add(new PdfLine { Text = Label("KEMBALI", Num(t.Kembalian), W), Size = 9 });
+
+            L.Add(new PdfLine { Text = new string('=', W), Size = 8.5f, Center = true });
+
             if (!t.MetodeBayar.Equals("Tunai", StringComparison.OrdinalIgnoreCase))
-                L.Add(new PdfLine { Text = "Pembayaran QRIS/e-wallet lunas.", Size = 9, Center = true });
-            L.Add(new PdfLine { Text = s.FooterStruk, Size = 10, Bold = true, Center = true });
-            L.Add(new PdfLine { Text = "Struk ini dicetak dari KasirKu (PDF)", Size = 8, Center = true });
+                L.Add(new PdfLine { Text = "PEMBAYARAN NON-TUNAI LUNAS", Size = 8, Center = true });
+
+            if (!string.IsNullOrWhiteSpace(s.FooterStruk))
+            {
+                foreach (var raw in s.FooterStruk.Replace("\r", "").Split('\n'))
+                {
+                    if (raw.Trim().Length == 0) continue;
+                    L.Add(new PdfLine { Text = raw.Trim().ToUpperInvariant(), Size = 9.5f, Bold = true, Center = true });
+                }
+            }
+
+            string kasir = string.IsNullOrWhiteSpace(t.KasirNama) ? "-" : t.KasirNama.ToUpperInvariant();
+            L.Add(new PdfLine { Text = $"{t.Tanggal:HH:mm:ss}/{kasir}/{t.Id}", Size = 7, Center = true });
+
             return L;
         }
 
@@ -51,27 +111,66 @@ namespace KasirKu.Shared.Services
             string safe = string.Concat(t.Id.Split(Path.GetInvalidFileNameChars()));
             string path = Path.Combine(StrukDir, $"Struk-{safe}.pdf");
             var lines = BuildStrukLines(t, settings);
-            // Kertas struk 80mm ~ 227pt, tinggi dinamis mengikuti jumlah baris
-            float height = Math.Max(500, 220 + lines.Count * 15);
-            SimplePdf.WriteLines(path, lines, pageWidth: 300, pageHeight: height, margin: 14);
+
+            // Lebar kertas 80mm ~ 227pt; beri margin nyaman.
+            const float pageWidth = 260f;
+            float height = 40;
+            foreach (var l in lines)
+                height += l.Image != null ? l.Image.DrawHeight + 8f : Math.Max(13, l.Size * 1.4f);
+            height = Math.Max(360, height + 40);
+
+            SimplePdf.WriteLines(path, lines, pageWidth: pageWidth, pageHeight: height, margin: 12);
             return path;
         }
 
+        /// <summary>Pratinjau teks struk untuk dialog konfirmasi di aplikasi kasir.</summary>
         public static string BuildStrukText(Transaction t, StoreSettings? settings = null)
         {
+            var s = settings ?? new StoreSettings();
             var sb = new StringBuilder();
-            sb.AppendLine($"======== {NamaToko(settings)} ========");
-            sb.AppendLine($"{t.Id}");
-            sb.AppendLine($"{t.Tanggal:dd/MM/yyyy HH:mm} | {t.MetodeBayar}");
-            sb.AppendLine("------------------------------");
+            const int W = 40;
+
+            sb.AppendLine(Center2(NamaToko(s).ToUpperInvariant(), W));
+            if (!string.IsNullOrWhiteSpace(s.Alamat)) sb.AppendLine(Center2(s.Alamat, W));
+            if (!string.IsNullOrWhiteSpace(s.Kota)) sb.AppendLine(Center2(s.Kota, W));
+            if (!string.IsNullOrWhiteSpace(s.Telepon)) sb.AppendLine(Center2(s.Telepon, W));
+            sb.AppendLine(new string('=', W));
+
+            sb.AppendLine(Label("No. Nota", t.Id, W));
+            sb.AppendLine(Label("Tanggal", t.Tanggal.ToString("dd-MM-yyyy HH:mm"), W));
+            sb.AppendLine(Label("Kasir", string.IsNullOrWhiteSpace(t.KasirNama) ? "-" : t.KasirNama.ToUpperInvariant(), W));
+            sb.AppendLine(Label("Pembayaran", (t.MetodeBayar ?? "Tunai").ToUpperInvariant(), W));
+            sb.AppendLine(new string('-', W));
+
             foreach (var i in t.Items)
-                sb.AppendLine($"{i.Nama} x{i.Qty} = Rp {i.Subtotal:N0}");
-            sb.AppendLine("------------------------------");
-            sb.AppendLine($"Total   : Rp {t.Total:N0}");
-            sb.AppendLine($"Bayar   : Rp {t.Bayar:N0} ({t.MetodeBayar})");
-            sb.AppendLine($"Kembali : Rp {t.Kembalian:N0}");
-            sb.AppendLine("Terima kasih!");
+            {
+                sb.AppendLine(TruncateText(i.Nama, W));
+                sb.AppendLine(Label($"  {i.Qty}X {Num(i.Harga)}", $"= {Num(i.Subtotal)}", W));
+            }
+
+            sb.AppendLine(new string('-', W));
+            sb.AppendLine(Label($"Qty  {t.JumlahItem} item", "", W));
+            sb.AppendLine(Label("TOTAL", Num(t.Total), W));
+            sb.AppendLine(Label($"BAYAR ({(t.MetodeBayar ?? "Tunai").ToUpperInvariant()})", Num(t.Bayar), W));
+            sb.AppendLine(Label("KEMBALI", Num(t.Kembalian), W));
+            sb.AppendLine(new string('=', W));
+
+            if (!string.IsNullOrWhiteSpace(s.FooterStruk))
+                foreach (var raw in s.FooterStruk.Replace("\r", "").Split('\n'))
+                    if (raw.Trim().Length > 0)
+                        sb.AppendLine(Center2(raw.Trim().ToUpperInvariant(), W));
+
+            string kasir = string.IsNullOrWhiteSpace(t.KasirNama) ? "-" : t.KasirNama.ToUpperInvariant();
+            sb.AppendLine($"{t.Tanggal:HH:mm:ss}/{kasir}/{t.Id}");
+
             return sb.ToString();
+        }
+
+        private static string Center2(string text, int width)
+        {
+            if (text.Length >= width) return text[..width];
+            int pad = (width - text.Length) / 2;
+            return new string(' ', pad) + text;
         }
 
         // ===== LAPORAN =====

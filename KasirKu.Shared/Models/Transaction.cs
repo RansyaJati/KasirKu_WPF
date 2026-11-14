@@ -29,6 +29,9 @@ namespace KasirKu.Shared.Models
         public decimal Kembalian => Bayar - Total;
         public string MetodeBayar { get; set; } = "Tunai";
 
+        /// <summary>Nama kasir yang melayani transaksi (dicetak di struk).</summary>
+        public string KasirNama { get; set; } = "";
+
         public string TotalRp => $"Rp {Total:N0}";
         public string BayarRp => $"Rp {Bayar:N0}";
         public string KembalianRp => $"Rp {Kembalian:N0}";

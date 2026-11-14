@@ -1,9 +1,11 @@
 using System.Collections.ObjectModel;
 using System.Diagnostics;
+using System.IO;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Media.Imaging;
 using System.Windows.Threading;
 using KasirKu.Shared;
 using KasirKu.Shared.Models;
@@ -257,15 +259,15 @@ namespace KasirKu.Manager
         // =========== PRODUK (CRUD) ===========
         private void RefreshProduk()
         {
-            string key = TxtCariProduk?.Text?.Trim().ToLower() ?? "";
+            string key = TxtCariProduk?.Text?.Trim() ?? "";
             var data = string.IsNullOrEmpty(key)
                 ? _products.ToList()
                 : _products.Where(p =>
-                    p.Kode.ToLower().Contains(key) ||
-                    p.Barcode.ToLower().Contains(key) ||
-                    p.Nama.ToLower().Contains(key) ||
-                    p.Supplier.ToLower().Contains(key) ||
-                    p.Kategori.ToLower().Contains(key)).ToList();
+                    p.Kode.IndexOf(key, StringComparison.OrdinalIgnoreCase) >= 0 ||
+                    p.Barcode.IndexOf(key, StringComparison.OrdinalIgnoreCase) >= 0 ||
+                    p.Nama.IndexOf(key, StringComparison.OrdinalIgnoreCase) >= 0 ||
+                    p.Supplier.IndexOf(key, StringComparison.OrdinalIgnoreCase) >= 0 ||
+                    p.Kategori.IndexOf(key, StringComparison.OrdinalIgnoreCase) >= 0).ToList();
             DgProduk.ItemsSource = data;
         }
 
@@ -705,8 +707,14 @@ namespace KasirKu.Manager
             if (TxtNamaToko == null) return;
             TxtNamaToko.Text = _settings.NamaToko;
             TxtAlamatToko.Text = _settings.Alamat;
+            TxtKotaToko.Text = _settings.Kota;
             TxtTelpToko.Text = _settings.Telepon;
             TxtFooterStruk.Text = _settings.FooterStruk;
+
+            if (ChkTampilkanLogo != null)
+                ChkTampilkanLogo.IsChecked = _settings.TampilkanLogo;
+
+            MuatPratinjauLogo();
 
             MuatDaftarPrinter();
 
@@ -718,6 +726,77 @@ namespace KasirKu.Manager
 
             if (ChkKickDrawer != null)
                 ChkKickDrawer.IsChecked = _settings.KickDrawer;
+        }
+
+        // ===== LOGO STRUK =====
+        private void MuatPratinjauLogo()
+        {
+            try
+            {
+                string? path = LogoService.ResolveLogoPath(_settings);
+                TxtLogoPath.Text = string.IsNullOrWhiteSpace(_settings.LogoPath)
+                    ? "(logo bawaan)"
+                    : _settings.LogoPath;
+
+                if (path != null && File.Exists(path))
+                {
+                    var bmp = new BitmapImage();
+                    bmp.BeginInit();
+                    bmp.CacheOption = BitmapCacheOption.OnLoad;
+                    bmp.UriSource = new Uri(path, UriKind.Absolute);
+                    bmp.EndInit();
+                    ImgLogoPreview.Source = bmp;
+                }
+                else
+                {
+                    ImgLogoPreview.Source = null;
+                }
+            }
+            catch
+            {
+                ImgLogoPreview.Source = null;
+            }
+        }
+
+        private void BtnPilihLogo_Click(object sender, RoutedEventArgs e)
+        {
+            var dlg = new Microsoft.Win32.OpenFileDialog
+            {
+                Title = "Pilih file logo toko",
+                Filter = "Gambar (*.png;*.jpg;*.jpeg;*.bmp)|*.png;*.jpg;*.jpeg;*.bmp|Semua file (*.*)|*.*"
+            };
+
+            if (dlg.ShowDialog() != true) return;
+
+            try
+            {
+                // Simpan salinan ke folder data supaya path stabil
+                Directory.CreateDirectory(LogoService.DataDir);
+                string ext = Path.GetExtension(dlg.FileName);
+                string target = Path.Combine(LogoService.DataDir, "logo" + ext);
+
+                if (File.Exists(target) && !string.Equals(Path.GetFullPath(dlg.FileName), Path.GetFullPath(target), StringComparison.OrdinalIgnoreCase))
+                    File.Delete(target);
+
+                if (!string.Equals(Path.GetFullPath(dlg.FileName), Path.GetFullPath(target), StringComparison.OrdinalIgnoreCase))
+                    File.Copy(dlg.FileName, target, overwrite: true);
+
+                _settings.LogoPath = target;
+                MuatPratinjauLogo();
+
+                MessageBox.Show("Logo berhasil dipasang. Klik 'Simpan Pengaturan' untuk menerapkan.",
+                    "Logo Struk", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Gagal memasang logo: " + ex.Message, "Logo Struk", MessageBoxButton.OK, MessageBoxImage.Warning);
+            }
+        }
+
+        private void BtnResetLogo_Click(object sender, RoutedEventArgs e)
+        {
+            _settings.LogoPath = "";
+            MuatPratinjauLogo();
         }
 
         private void BtnRefreshPrinter_Click(object sender, RoutedEventArgs e)
@@ -736,6 +815,36 @@ namespace KasirKu.Manager
                 MessageBox.Show(hasil.Message, "Test Print Gagal", MessageBoxButton.OK, MessageBoxImage.Warning);
         }
 
+        private void BtnCetakContohStruk_Click(object sender, RoutedEventArgs e)
+        {
+            SimpanStatePengaturanKeSettings();
+
+            var contoh = new Transaction
+            {
+                Id = $"CONTOH-{DateTime.Now:HHmmss}",
+                Tanggal = DateTime.Now,
+                KasirNama = _loggedInUser?.NamaLengkap ?? "KASIR",
+                MetodeBayar = "Tunai",
+                Items = new List<TransactionItem>
+                {
+                    new() { Kode = "CNT1", Nama = "Kulit Dimsum PAPIC 7cm/pcs", Harga = 15000m, Qty = 1 },
+                    new() { Kode = "CNT2", Nama = "Belfoods Chicken Nugget 170gr", Harga = 24500m, Qty = 1 },
+                    new() { Kode = "CNT3", Nama = "Fiesta Chicken Nugget 200g", Harga = 8500m, Qty = 2 }
+                }
+            };
+            contoh.Total = contoh.Items.Sum(x => x.Harga * x.Qty);
+            contoh.Bayar = 100000m;
+
+            // Pratinjau dulu (tanpa membuang kertas); tombol "Cetak Struk"
+            // di jendela pratinjau yang akan mengirim ke printer.
+            var preview = new KasirKu.UI.StrukPreviewWindow(contoh, _settings,
+                "Ini struk contoh. Periksa logo, alamat, dan kerapian kolom.")
+            {
+                Owner = this
+            };
+            preview.ShowDialog();
+        }
+
         private void BtnBukaLaci_Click(object sender, RoutedEventArgs e)
         {
             SimpanStatePengaturanKeSettings();
@@ -750,8 +859,10 @@ namespace KasirKu.Manager
         {
             _settings.NamaToko = TxtNamaToko?.Text?.Trim() ?? "";
             _settings.Alamat = TxtAlamatToko?.Text?.Trim() ?? "";
+            _settings.Kota = TxtKotaToko?.Text?.Trim() ?? "";
             _settings.Telepon = TxtTelpToko?.Text?.Trim() ?? "";
             _settings.FooterStruk = TxtFooterStruk?.Text?.Trim() ?? "";
+            _settings.TampilkanLogo = ChkTampilkanLogo?.IsChecked != false;
             _settings.PrinterName = CmbPrinterName?.Text?.Trim() ?? "";
             _settings.PaperWidthMm = (CmbLebarKertas?.SelectedIndex == 1) ? 58 : 80;
             _settings.AutoPrintReceipt = ChkAutoCetakStruk?.IsChecked == true;

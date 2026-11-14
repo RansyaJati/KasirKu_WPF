@@ -1,0 +1,14 @@
+# Abaikan file dump mentah asli dan hasil ekspor CSV dari klien (mencegah data privasi bocor ke Git)
+raw/*
+!raw/.gitkeep
+csv/*
+!csv/.gitkeep
+
+# Ekstensi file database dan backup
+*.bak
+*.mdf
+*.ldf
+*.dump
+*.sql.gz
+*.tar.gz
+*.7z

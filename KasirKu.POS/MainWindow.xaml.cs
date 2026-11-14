@@ -8,6 +8,7 @@ using System.Windows.Threading;
 using KasirKu.Shared;
 using KasirKu.Shared.Models;
 using KasirKu.Shared.Services;
+using KasirKu.UI;
 
 namespace KasirKu.POS
 {
@@ -79,25 +80,6 @@ namespace KasirKu.POS
             foreach (var t in data.Transactions) _transactions.Add(t);
             _movements.Clear();
             foreach (var m in data.Movements) _movements.Add(m);
-
-            // Jika belum ada produk: seed contoh data bawaan
-            if (_products.Count == 0)
-            {
-                SeedContoh();
-                SimpanKeDisk();
-            }
-        }
-
-        private void SeedContoh()
-        {
-            TambahProdukAwal("BRG001", "8991111110011", "Indomie Goreng", "Pcs", "Makanan", "Indofood", 2500, 3500, 100);
-            TambahProdukAwal("BRG002", "8992222220022", "Kopi Kapal Api", "Pack", "Minuman", "Distributor A", 6500, 8000, 50);
-            TambahProdukAwal("BRG003", "8993333330033", "Teh Botol Sosro", "Botol", "Minuman", "Distributor A", 4000, 5000, 60);
-            TambahProdukAwal("BRG004", "8994444440044", "Chitato Sapi Panggang", "Pcs", "Snack", "Distributor B", 9000, 11000, 40);
-            TambahProdukAwal("BRG005", "8995555550055", "Aqua 600ml", "Botol", "Minuman", "Agen Frozen", 3000, 4000, 80);
-            TambahProdukAwal("BRG006", "8996666660066", "Roti Aoka Coklat", "Pcs", "Makanan", "Distributor B", 2200, 3000, 70);
-            TambahProdukAwal("BRG007", "8997777770077", "Buku Tulis Sidu", "Pcs", "ATK", "Umum", 4500, 6000, 30);
-            TambahProdukAwal("BRG008", "8998888880088", "Pulpen Pilot", "Pcs", "ATK", "Umum", 3200, 4500, 45);
         }
 
         private void TambahProdukAwal(string kode, string barcode, string nama, string satuan, string kelompok, string supplier, decimal hargaBeli, decimal hargaJual, int stok)
@@ -320,7 +302,7 @@ namespace KasirKu.POS
                 case "Kasir":
                     PageKasir.Visibility = Visibility.Visible;
                     title = "Kasir (F1)";
-                    sub = "Scan barcode / ketik kode atau nama + Enter. F5 = Bayar, F6 = Reset, F7 = Struk PDF.";
+                    sub = "Scan barcode / ketik kode atau nama + Enter. F5 = Bayar, F6 = Reset, F7 = Pratinjau Struk.";
                     FocusScan();
                     break;
                 case "Cek":
@@ -629,6 +611,7 @@ namespace KasirKu.POS
                 Total = total,
                 Bayar = bayar,
                 MetodeBayar = metode,
+                KasirNama = _loggedInUser?.NamaLengkap ?? _loggedInUser?.Username ?? "Kasir",
                 Items = _cart.Select(c => new TransactionItem
                 {
                     Kode = c.Kode,
@@ -662,21 +645,24 @@ namespace KasirKu.POS
                 infoThermal = "\nThermal: Belum diatur (atur printer di Aplikasi Manager).";
             }
 
-            string struk = ExportService.BuildStrukText(trx, _settings);
-            MessageBox.Show(struk + $"\n\nMetode: {metode}{infoThermal}\nStruk PDF: {pdfPath}",
-                "Transaksi Berhasil", MessageBoxButton.OK, MessageBoxImage.Information);
-
             _cart.Clear();
             TxtBayar.Text = "";
             RefreshSemua();
             UpdateMetodeUI();
-            FocusScan();
 
             // Simpan data ke disk setelah transaksi
             SimpanKeDisk();
+
+            // Tampilkan pratinjau struk (seperti hasil cetak thermal)
+            string info = $"Struk PDF: {pdfPath}{infoThermal}";
+
+            var preview = new StrukPreviewWindow(trx, _settings, info) { Owner = this };
+            preview.ShowDialog();
+
+            FocusScan();
         }
 
-        // =========== CETAK STRUK THERMAL / PDF (F7) ===========
+        // =========== PRATINJAU / CETAK STRUK (F7) ===========
         private void BtnCetakStruk_Click(object sender, RoutedEventArgs e)
         {
             _settings = DataStorageService.LoadSettings();
@@ -692,44 +678,10 @@ namespace KasirKu.POS
                 return;
             }
 
-            // Coba cetak ke printer thermal jika sudah diatur
-            if (!string.IsNullOrWhiteSpace(_settings.PrinterName))
-            {
-                var thermalResult = ThermalPrintService.CetakStruk(t, _settings);
-                if (thermalResult.Success)
-                {
-                    MessageBox.Show(thermalResult.Message, "Struk Thermal", MessageBoxButton.OK, MessageBoxImage.Information);
-                    FocusScan();
-                    return;
-                }
-                else
-                {
-                    var tanya = MessageBox.Show($"{thermalResult.Message}\n\nApakah Anda ingin membuka versi PDF?",
-                        "Gagal Cetak Thermal", MessageBoxButton.YesNo, MessageBoxImage.Warning);
-                    if (tanya != MessageBoxResult.Yes)
-                    {
-                        FocusScan();
-                        return;
-                    }
-                }
-            }
-
-            try
-            {
-                string path = ExportService.SimpanStrukPdf(t, _settings);
-                var jawab = MessageBox.Show($"Struk {t.Id} tersimpan:\n{path}\n\nBuka file sekarang?",
-                    "Struk PDF", MessageBoxButton.YesNo, MessageBoxImage.Information);
-                if (jawab == MessageBoxResult.Yes)
-                    Process.Start(new ProcessStartInfo(path) { UseShellExecute = true });
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show("Gagal membuat PDF: " + ex.Message, "Error", MessageBoxButton.OK, MessageBoxImage.Error);
-            }
-            finally
-            {
-                FocusScan();
-            }
+            // Tampilkan pratinjau dulu; cetak/PDF/PNG bisa dipilih dari jendela pratinjau.
+            var preview = new StrukPreviewWindow(t, _settings) { Owner = this };
+            preview.ShowDialog();
+            FocusScan();
         }
 
         // =========== CEK BARANG (READ-ONLY) ===========

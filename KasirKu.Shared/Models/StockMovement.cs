@@ -29,9 +29,19 @@ namespace KasirKu.Shared.Models
     public class StoreSettings
     {
         public string NamaToko { get; set; } = "BANYU FROZEN FOOD";
-        public string Alamat { get; set; } = "Jl. Contoh No. 123";
-        public string Telepon { get; set; } = "0812-3456-7890";
-        public string FooterStruk { get; set; } = "Terima kasih & sampai jumpa!";
+        public string Alamat { get; set; } = "Jl. RH. Abdul Halim No. 83";
+        public string Kota { get; set; } = "Bandung";
+        public string Telepon { get; set; } = "081221317779";
+        public string FooterStruk { get; set; } = "TERIMA KASIH\nATAS KUNJUNGANNYA";
+
+        /// <summary>
+        /// Path file gambar logo toko (PNG/JPG/BMP) yang dicetak di kepala struk.
+        /// Kosongkan untuk memakai logo bawaan.
+        /// </summary>
+        public string LogoPath { get; set; } = "";
+
+        /// <summary>Cetak logo di kepala struk thermal.</summary>
+        public bool TampilkanLogo { get; set; } = true;
 
         // Pengaturan Printer Thermal & Struk
         public string PrinterName { get; set; } = "";

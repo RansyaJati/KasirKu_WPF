@@ -150,6 +150,10 @@
             <Setter Property="GridLinesVisibility" Value="Horizontal"/>
             <Setter Property="HorizontalGridLinesBrush" Value="#E2E8F0"/>
             <Setter Property="CanUserResizeRows" Value="False"/>
+            <Setter Property="VirtualizingStackPanel.IsVirtualizing" Value="True"/>
+            <Setter Property="VirtualizingStackPanel.VirtualizationMode" Value="Recycling"/>
+            <Setter Property="EnableRowVirtualization" Value="True"/>
+            <Setter Property="ScrollViewer.CanContentScroll" Value="True"/>
         </Style>
         <Style TargetType="DataGridColumnHeader">
             <Setter Property="Background" Value="#F8FAFC"/>
@@ -216,12 +220,13 @@
                 </StackPanel>
             </Border>
 
-            <!-- PAGE CONTAINER -->
-            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="24,16">
+            <!-- PAGE CONTAINER (tanpa ScrollViewer luar: agar DataGrid tetap bisa virtualisasi) -->
+            <Border Grid.Row="1" Padding="24,16">
                 <Grid>
 
                     <!-- ===== DASHBOARD (F1) ===== -->
-                    <StackPanel x:Name="PageDashboard">
+                    <ScrollViewer x:Name="PageDashboard" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                    <StackPanel>
                         <Grid>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*"/>
@@ -280,6 +285,7 @@
                             </Border>
                         </Grid>
                     </StackPanel>
+                    </ScrollViewer>
 
                     <!-- ===== PRODUK (F2) ===== -->
                     <Grid x:Name="PageProduk" Visibility="Collapsed">
@@ -288,10 +294,17 @@
                             <ColumnDefinition Width="320"/>
                         </Grid.ColumnDefinitions>
                         <Border Grid.Column="0" Style="{StaticResource Card}" Margin="0,0,12,0">
-                            <DockPanel>
-                                <TextBlock Text="Data Produk" FontWeight="Bold" FontSize="15" DockPanel.Dock="Top" Margin="0,0,0,8"/>
-                                <TextBox x:Name="TxtCariProduk" DockPanel.Dock="Top" Margin="0,0,0,10" TextChanged="TxtCariProduk_TextChanged"/>
-                                <DataGrid x:Name="DgProduk" DockPanel.Dock="Top" SelectionChanged="DgProduk_SelectionChanged" VerticalScrollBarVisibility="Auto" ScrollViewer.HorizontalScrollBarVisibility="Auto">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="*"/>
+                                </Grid.RowDefinitions>
+                                <TextBlock Grid.Row="0" Text="Data Produk" FontWeight="Bold" FontSize="15" Margin="0,0,0,8"/>
+                                <TextBox Grid.Row="1" x:Name="TxtCariProduk" Margin="0,0,0,10" TextChanged="TxtCariProduk_TextChanged"/>
+                                <DataGrid Grid.Row="2" x:Name="DgProduk" SelectionChanged="DgProduk_SelectionChanged"
+                                          VerticalScrollBarVisibility="Auto" ScrollViewer.HorizontalScrollBarVisibility="Auto"
+                                          EnableRowVirtualization="True" EnableColumnVirtualization="False">
                                     <DataGrid.Columns>
                                         <DataGridTextColumn Header="Kode" Binding="{Binding Kode}" Width="95"/>
                                         <DataGridTextColumn Header="Barcode" Binding="{Binding Barcode}" Width="115"/>
@@ -314,7 +327,7 @@
                                         </DataGridTemplateColumn>
                                     </DataGrid.Columns>
                                 </DataGrid>
-                            </DockPanel>
+                            </Grid>
                         </Border>
                         <Border Grid.Column="1" Style="{StaticResource Card}">
                             <ScrollViewer VerticalScrollBarVisibility="Auto">
@@ -375,12 +388,18 @@
                             <ColumnDefinition Width="340"/>
                         </Grid.ColumnDefinitions>
                         <Border Grid.Column="0" Style="{StaticResource Card}" Margin="0,0,12,0">
-                            <DockPanel>
-                                <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,8">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="*"/>
+                                </Grid.RowDefinitions>
+                                <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,8">
                                     <TextBlock Text="Log Barang Masuk / Keluar" FontWeight="Bold" FontSize="15" VerticalAlignment="Center"/>
                                     <Button x:Name="BtnHapusStokLog" Content="Hapus Semua" Style="{StaticResource DangerButton}" Margin="16,0,0,0" Padding="10,5" Click="BtnHapusStokLog_Click"/>
                                 </StackPanel>
-                                <Grid DockPanel.Dock="Top" Margin="0,0,0,10">
+                                <Grid Grid.Row="1" Margin="0,0,0,10">
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="*"/>
                                         <ColumnDefinition Width="130"/>
@@ -392,7 +411,7 @@
                                         <ComboBoxItem Content="Keluar"/>
                                     </ComboBox>
                                 </Grid>
-                                <Grid DockPanel.Dock="Top" Margin="0,0,0,10">
+                                <Grid Grid.Row="2" Margin="0,0,0,10">
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="*"/>
                                         <ColumnDefinition Width="*"/>
@@ -410,7 +429,7 @@
                                         </StackPanel>
                                     </Border>
                                 </Grid>
-                                <DataGrid x:Name="DgStok" VerticalScrollBarVisibility="Auto">
+                                <DataGrid Grid.Row="3" x:Name="DgStok" VerticalScrollBarVisibility="Auto">
                                     <DataGrid.Columns>
                                         <DataGridTextColumn Header="Tanggal" Binding="{Binding TanggalStr}" Width="125"/>
                                         <DataGridTextColumn Header="Kode" Binding="{Binding Kode}" Width="90"/>
@@ -421,7 +440,7 @@
                                         <DataGridTextColumn Header="Keterangan" Binding="{Binding Keterangan}" Width="170"/>
                                     </DataGrid.Columns>
                                 </DataGrid>
-                            </DockPanel>
+                            </Grid>
                         </Border>
                         <Border Grid.Column="1" Style="{StaticResource Card}">
                             <StackPanel>
@@ -457,13 +476,18 @@
                             <ColumnDefinition Width="380"/>
                         </Grid.ColumnDefinitions>
                         <Border Grid.Column="0" Style="{StaticResource Card}" Margin="0,0,12,0">
-                            <DockPanel>
-                                <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,8">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="*"/>
+                                </Grid.RowDefinitions>
+                                <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,8">
                                     <TextBlock Text="Riwayat Transaksi" FontWeight="Bold" FontSize="15" VerticalAlignment="Center"/>
                                     <Button Content="Hapus Semua" Style="{StaticResource DangerButton}" Margin="16,0,0,0" Padding="10,5" Click="BtnHapusRiwayat_Click"/>
                                 </StackPanel>
-                                <TextBox x:Name="TxtCariRiwayat" DockPanel.Dock="Top" Margin="0,0,0,10" TextChanged="TxtCariRiwayat_TextChanged"/>
-                                <DataGrid x:Name="DgRiwayat" SelectionChanged="DgRiwayat_SelectionChanged" VerticalScrollBarVisibility="Auto">
+                                <TextBox Grid.Row="1" x:Name="TxtCariRiwayat" Margin="0,0,0,10" TextChanged="TxtCariRiwayat_TextChanged"/>
+                                <DataGrid Grid.Row="2" x:Name="DgRiwayat" SelectionChanged="DgRiwayat_SelectionChanged" VerticalScrollBarVisibility="Auto">
                                     <DataGrid.Columns>
                                         <DataGridTextColumn Header="ID" Binding="{Binding Id}" Width="120"/>
                                         <DataGridTextColumn Header="Tanggal" Binding="{Binding TanggalStr}" Width="130"/>
@@ -472,26 +496,33 @@
                                         <DataGridTextColumn Header="Total" Binding="{Binding TotalRp}" Width="*"/>
                                     </DataGrid.Columns>
                                 </DataGrid>
-                            </DockPanel>
+                            </Grid>
                         </Border>
                         <Border Grid.Column="1" Style="{StaticResource Card}">
-                            <DockPanel>
-                                <TextBlock x:Name="TxtDetailJudul" Text="Detail Transaksi" FontWeight="Bold" FontSize="15" DockPanel.Dock="Top" Margin="0,0,0,8"/>
-                                <DataGrid x:Name="DgRiwayatDetail" DockPanel.Dock="Top" Height="300">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="*"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+                                <TextBlock Grid.Row="0" x:Name="TxtDetailJudul" Text="Detail Transaksi" FontWeight="Bold" FontSize="15" Margin="0,0,0,8"/>
+                                <DataGrid Grid.Row="1" x:Name="DgRiwayatDetail">
                                     <DataGrid.Columns>
                                         <DataGridTextColumn Header="Nama" Binding="{Binding Nama}" Width="*"/>
                                         <DataGridTextColumn Header="Qty" Binding="{Binding Qty}" Width="45"/>
                                         <DataGridTextColumn Header="Subtotal" Binding="{Binding SubtotalRp}" Width="105"/>
                                     </DataGrid.Columns>
                                 </DataGrid>
-                                <TextBlock x:Name="TxtDetailTotal" Text="" FontWeight="Bold" FontSize="13" DockPanel.Dock="Top" Margin="0,10,0,0" TextWrapping="Wrap"/>
-                                <Button Content="F7 - Cetak Struk (PDF)" Style="{StaticResource PrimaryButton}" DockPanel.Dock="Bottom" Margin="0,12,0,0" Click="BtnCetakStruk_Click"/>
-                            </DockPanel>
+                                <TextBlock Grid.Row="2" x:Name="TxtDetailTotal" Text="" FontWeight="Bold" FontSize="13" Margin="0,10,0,0" TextWrapping="Wrap"/>
+                                <Button Grid.Row="3" Content="F7 - Cetak Struk (PDF)" Style="{StaticResource PrimaryButton}" Margin="0,12,0,0" Click="BtnCetakStruk_Click"/>
+                            </Grid>
                         </Border>
                     </Grid>
 
                     <!-- ===== LAPORAN (F5) ===== -->
-                    <StackPanel x:Name="PageLaporan" Visibility="Collapsed">
+                    <ScrollViewer x:Name="PageLaporan" Visibility="Collapsed" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                    <StackPanel>
                         <Border Style="{StaticResource Card}">
                             <WrapPanel VerticalAlignment="Center">
                                 <TextBlock Text="Periode:" FontWeight="Bold" VerticalAlignment="Center" Margin="0,0,8,0"/>
@@ -569,6 +600,7 @@
                             </Border>
                         </Grid>
                     </StackPanel>
+                    </ScrollViewer>
 
                     <!-- ===== PENGATURAN (F6) ===== -->
                     <Grid x:Name="PagePengaturan" Visibility="Collapsed">
@@ -578,17 +610,44 @@
                         </Grid.ColumnDefinitions>
 
                         <!-- Profil Toko & Printer Thermal -->
-                        <Border Grid.Column="0" Style="{StaticResource Card}" VerticalAlignment="Top" Margin="0,0,14,0">
+                        <Border Grid.Column="0" Style="{StaticResource Card}" Margin="0,0,14,0">
+                            <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
                             <StackPanel>
                                 <TextBlock Text="Pengaturan Toko &amp; Kasir" FontWeight="Bold" FontSize="15" Margin="0,0,0,14"/>
                                 <TextBlock Text="Nama Toko (tampil di struk &amp; laporan)" FontSize="12" Foreground="#64748B"/>
                                 <TextBox x:Name="TxtNamaToko" Margin="0,3,0,8"/>
                                 <TextBlock Text="Alamat" FontSize="12" Foreground="#64748B"/>
                                 <TextBox x:Name="TxtAlamatToko" Margin="0,3,0,8"/>
+                                <TextBlock Text="Kota" FontSize="12" Foreground="#64748B"/>
+                                <TextBox x:Name="TxtKotaToko" Margin="0,3,0,8"/>
                                 <TextBlock Text="Telepon" FontSize="12" Foreground="#64748B"/>
                                 <TextBox x:Name="TxtTelpToko" Margin="0,3,0,8"/>
                                 <TextBlock Text="Footer Struk" FontSize="12" Foreground="#64748B"/>
-                                <TextBox x:Name="TxtFooterStruk" Margin="0,3,0,12"/>
+                                <TextBox x:Name="TxtFooterStruk" Margin="0,3,0,8" AcceptsReturn="True" Height="46"
+                                         VerticalScrollBarVisibility="Auto" TextWrapping="Wrap"
+                                         ToolTip="Boleh lebih dari satu baris. Contoh: TERIMA KASIH (baris baru) ATAS KUNJUNGANNYA"/>
+
+                                <Border Height="1" Background="#E2E8F0" Margin="0,4,0,12"/>
+
+                                <TextBlock Text="Logo pada Struk" FontWeight="Bold" FontSize="13" Foreground="#0F172A" Margin="0,0,0,6"/>
+                                <Border Background="#F8FAFC" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="8" Padding="8" Margin="0,0,0,8">
+                                    <StackPanel>
+                                        <Border Background="White" CornerRadius="6" Padding="6" Height="66">
+                                            <Image x:Name="ImgLogoPreview" Stretch="Uniform" Height="52"/>
+                                        </Border>
+                                        <Grid Margin="0,8,0,0">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <TextBox x:Name="TxtLogoPath" IsReadOnly="True" FontSize="11" VerticalContentAlignment="Center"/>
+                                            <Button Grid.Column="1" Content="Pilih..." Style="{StaticResource GhostButton}" Padding="8,6" Margin="6,0,0,0" Click="BtnPilihLogo_Click"/>
+                                            <Button Grid.Column="2" Content="Default" Style="{StaticResource GhostButton}" Padding="8,6" Margin="6,0,0,0" Click="BtnResetLogo_Click" ToolTip="Kembalikan ke logo bawaan BANYU FROZEN FOOD"/>
+                                        </Grid>
+                                    </StackPanel>
+                                </Border>
+                                <CheckBox x:Name="ChkTampilkanLogo" Content="Cetak logo di kepala struk" Margin="0,0,0,12" FontSize="12" IsChecked="True"/>
 
                                 <Border Height="1" Background="#E2E8F0" Margin="0,4,0,12"/>
 
@@ -616,14 +675,17 @@
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="*"/>
                                         <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="*"/>
                                     </Grid.ColumnDefinitions>
                                     <Button Grid.Column="0" Content="Test Print" Style="{StaticResource GhostButton}" Margin="0,0,4,0" Click="BtnTestPrint_Click"/>
-                                    <Button Grid.Column="1" Content="Buka Laci" Style="{StaticResource GhostButton}" Margin="4,0,0,0" Click="BtnBukaLaci_Click"/>
+                                    <Button Grid.Column="1" Content="Pratinjau Struk" Style="{StaticResource GhostButton}" Margin="2,0,2,0" Click="BtnCetakContohStruk_Click" ToolTip="Lihat tampilan struk di layar (tanpa mencetak kertas)"/>
+                                    <Button Grid.Column="2" Content="Buka Laci" Style="{StaticResource GhostButton}" Margin="4,0,0,0" Click="BtnBukaLaci_Click"/>
                                 </Grid>
 
                                 <Button Content="Simpan Pengaturan" Style="{StaticResource SuccessButton}" Click="BtnSimpanPengaturan_Click" Margin="0,4,0,0"/>
                                 <TextBlock Text="Pengaturan ini dipakai bersama oleh aplikasi POS dan Manager." FontSize="11" Foreground="#94A3B8" TextWrapping="Wrap" Margin="0,10,0,0"/>
                             </StackPanel>
+                            </ScrollViewer>
                         </Border>
 
                         <!-- Manajemen Pengguna (CRUD) -->
@@ -699,7 +761,7 @@
                     </Grid>
 
                 </Grid>
-            </ScrollViewer>
+            </Border>
         </Grid>
     </Grid>
 </Window>

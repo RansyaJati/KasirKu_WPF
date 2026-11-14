@@ -175,6 +175,9 @@
             <Setter Property="GridLinesVisibility" Value="Horizontal"/>
             <Setter Property="HorizontalGridLinesBrush" Value="#E2E8F0"/>
             <Setter Property="CanUserResizeRows" Value="False"/>
+            <Setter Property="VirtualizingStackPanel.IsVirtualizing" Value="True"/>
+            <Setter Property="VirtualizingStackPanel.VirtualizationMode" Value="Recycling"/>
+            <Setter Property="ScrollViewer.CanContentScroll" Value="True"/>
         </Style>
         <Style TargetType="DataGridColumnHeader">
             <Setter Property="Background" Value="#F8FAFC"/>
@@ -220,7 +223,7 @@
                     <Button x:Name="BtnF5Bayar" Style="{StaticResource FButton}" Content="F5 - Bayar" Click="BtnBayar_Click"/>
                     <Button x:Name="BtnF6Reset" Style="{StaticResource FButton}" Content="F6 - Reset" Click="BtnResetKeranjang_Click"/>
                     <Border Width="1" Background="#334155" Margin="8,4"/>
-                    <Button x:Name="BtnF7Struk" Style="{StaticResource FButton}" Content="F7 - Cetak Struk" Click="BtnCetakStruk_Click"/>
+                    <Button x:Name="BtnF7Struk" Style="{StaticResource FButton}" Content="F7 - Pratinjau Struk" Click="BtnCetakStruk_Click"/>
                     <Button x:Name="BtnF8Printer" Style="{StaticResource FButton}" Content="F8 - Printer" Click="BtnF8Printer_Click"/>
                     <Button x:Name="BtnBukaLaciTop" Style="{StaticResource FButton}" Content="Buka Laci" Click="BtnBukaLaciKasir_Click"/>
                 </WrapPanel>
@@ -406,18 +409,24 @@
                     </DockPanel>
                 </Border>
                 <Border Grid.Column="1" Style="{StaticResource Card}">
-                    <DockPanel>
-                        <TextBlock x:Name="TxtDetailJudul" Text="Detail Transaksi" FontWeight="Bold" FontSize="15" DockPanel.Dock="Top" Margin="0,0,0,8"/>
-                        <DataGrid x:Name="DgRiwayatDetail" DockPanel.Dock="Top" Height="340">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+                        <TextBlock Grid.Row="0" x:Name="TxtDetailJudul" Text="Detail Transaksi" FontWeight="Bold" FontSize="15" Margin="0,0,0,8"/>
+                        <DataGrid Grid.Row="1" x:Name="DgRiwayatDetail">
                             <DataGrid.Columns>
                                 <DataGridTextColumn Header="Nama" Binding="{Binding Nama}" Width="*"/>
                                 <DataGridTextColumn Header="Qty" Binding="{Binding Qty}" Width="45"/>
                                 <DataGridTextColumn Header="Subtotal" Binding="{Binding SubtotalRp}" Width="105"/>
                             </DataGrid.Columns>
                         </DataGrid>
-                        <TextBlock x:Name="TxtDetailTotal" Text="" FontWeight="Bold" FontSize="13" DockPanel.Dock="Top" Margin="0,10,0,0" TextWrapping="Wrap"/>
-                        <Button Content="F7 - Cetak Struk (PDF)" Style="{StaticResource PrimaryButton}" DockPanel.Dock="Bottom" Margin="0,12,0,0" Click="BtnCetakStruk_Click"/>
-                    </DockPanel>
+                        <TextBlock Grid.Row="2" x:Name="TxtDetailTotal" Text="" FontWeight="Bold" FontSize="13" Margin="0,10,0,0" TextWrapping="Wrap"/>
+                        <Button Grid.Row="3" Content="F7 - Pratinjau / Cetak Struk" Style="{StaticResource PrimaryButton}" Margin="0,12,0,0" Click="BtnCetakStruk_Click"/>
+                    </Grid>
                 </Border>
             </Grid>
 

@@ -85,7 +85,7 @@ namespace KasirKu.Shared.Services
         {
             if (!File.Exists(UsersPath))
             {
-                var data = SeedDefault();
+                var data = new UsersData();
                 Save(data);
                 return data;
             }
@@ -93,7 +93,7 @@ namespace KasirKu.Shared.Services
             {
                 string json = File.ReadAllText(UsersPath);
                 var data = JsonSerializer.Deserialize<UsersData>(json, JsonOpts);
-                return data ?? SeedDefault();
+                return data ?? new UsersData();
             }
             catch
             {
@@ -103,7 +103,7 @@ namespace KasirKu.Shared.Services
                     File.Move(UsersPath, backup);
                 }
                 catch { }
-                var data = SeedDefault();
+                var data = new UsersData();
                 Save(data);
                 return data;
             }
