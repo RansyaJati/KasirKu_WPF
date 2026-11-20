@@ -15,9 +15,16 @@ namespace KasirKu.Shared.Services
         public int NextProductId { get; set; } = 1;
         public int NextTrx { get; set; } = 1;
         public int NextMovementId { get; set; } = 1;
+        public int NextExpenseId { get; set; } = 1;
+        public int NextMemberId { get; set; } = 1;
+        public int NextSupplierId { get; set; } = 1;
         public List<Product> Products { get; set; } = new();
         public List<Transaction> Transactions { get; set; } = new();
         public List<StockMovement> Movements { get; set; } = new();
+        public List<CashExpense> Expenses { get; set; } = new();
+        public List<HoldTransaction> HoldTransactions { get; set; } = new();
+        public List<Member> Members { get; set; } = new();
+        public List<Supplier> Suppliers { get; set; } = new();
     }
 
     /// <summary>

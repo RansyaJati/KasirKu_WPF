@@ -48,5 +48,8 @@ namespace KasirKu.Shared.Models
         public int PaperWidthMm { get; set; } = 80;
         public bool AutoPrintReceipt { get; set; } = true;
         public bool KickDrawer { get; set; } = true;
+
+        /// <summary>Cetak satuan produk di struk (mis: 2 pcs x 15.000). Bisa di-toggle lewat checklist pengaturan.</summary>
+        public bool CetakSatuanStruk { get; set; } = true;
     }
 }

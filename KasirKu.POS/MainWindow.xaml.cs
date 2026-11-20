@@ -18,13 +18,22 @@ namespace KasirKu.POS
         private readonly ObservableCollection<CartItem> _cart = new();
         private readonly ObservableCollection<Transaction> _transactions = new();
         private readonly ObservableCollection<StockMovement> _movements = new();
+        private readonly ObservableCollection<CashExpense> _expenses = new();
+        private readonly ObservableCollection<HoldTransaction> _holdTransactions = new();
+        private readonly ObservableCollection<Member> _members = new();
+        private readonly ObservableCollection<Supplier> _suppliers = new();
 
         private StoreSettings _settings = new();
+        private decimal? _pendingCustomHarga;
+        private Member? _selectedMember;
         private Transaction? _lastTrx;
         private User? _loggedInUser;
         private int _nextProductId = 1;
         private int _nextTrx = 1;
         private int _nextMovementId = 1;
+        private int _nextExpenseId = 1;
+        private int _nextMemberId = 1;
+        private int _nextSupplierId = 1;
         private bool _ready;
         private string _halaman = "Kasir";
 
@@ -73,6 +82,9 @@ namespace KasirKu.POS
             _nextProductId = data.NextProductId;
             _nextTrx = data.NextTrx;
             _nextMovementId = data.NextMovementId;
+            _nextExpenseId = data.NextExpenseId;
+            _nextMemberId = data.NextMemberId;
+            _nextSupplierId = data.NextSupplierId;
 
             _products.Clear();
             foreach (var p in data.Products) _products.Add(p);
@@ -80,6 +92,15 @@ namespace KasirKu.POS
             foreach (var t in data.Transactions) _transactions.Add(t);
             _movements.Clear();
             foreach (var m in data.Movements) _movements.Add(m);
+            _expenses.Clear();
+            foreach (var exp in data.Expenses) _expenses.Add(exp);
+            _holdTransactions.Clear();
+            foreach (var h in data.HoldTransactions) _holdTransactions.Add(h);
+            _members.Clear();
+            foreach (var mem in data.Members) _members.Add(mem);
+            _suppliers.Clear();
+            foreach (var sup in data.Suppliers) _suppliers.Add(sup);
+            UpdateHoldCartButtonBadge();
         }
 
         private void TambahProdukAwal(string kode, string barcode, string nama, string satuan, string kelompok, string supplier, decimal hargaBeli, decimal hargaJual, int stok)
@@ -108,9 +129,16 @@ namespace KasirKu.POS
                 NextProductId = _nextProductId,
                 NextTrx = _nextTrx,
                 NextMovementId = _nextMovementId,
+                NextExpenseId = _nextExpenseId,
+                NextMemberId = _nextMemberId,
+                NextSupplierId = _nextSupplierId,
                 Products = _products.ToList(),
                 Transactions = _transactions.ToList(),
-                Movements = _movements.ToList()
+                Movements = _movements.ToList(),
+                Expenses = _expenses.ToList(),
+                HoldTransactions = _holdTransactions.ToList(),
+                Members = _members.ToList(),
+                Suppliers = _suppliers.ToList()
             };
             DataStorageService.Save(data);
         }
@@ -128,10 +156,48 @@ namespace KasirKu.POS
                 case Key.F6: BtnResetKeranjang_Click(this, new RoutedEventArgs()); e.Handled = true; break;
                 case Key.F7: BtnCetakStruk_Click(this, new RoutedEventArgs()); e.Handled = true; break;
                 case Key.F8: BukaModalPrinter(); e.Handled = true; break;
+                case Key.F9:
+                    if (_halaman != "Kasir") ShowPage("Kasir");
+                    BukaModalCustomHarga();
+                    e.Handled = true;
+                    break;
+                case Key.F11:
+                    if (_halaman == "Kasir")
+                    {
+                        BtnHoldCart_Click(this, new RoutedEventArgs());
+                        e.Handled = true;
+                    }
+                    break;
                 case Key.Escape:
-                    if (ModalPrinter.Visibility == Visibility.Visible)
+                    if (ModalPengeluaranKas.Visibility == Visibility.Visible)
+                    {
+                        TutupModalPengeluaranKas();
+                        e.Handled = true;
+                    }
+                    else if (ModalHoldCart.Visibility == Visibility.Visible)
+                    {
+                        TutupModalHoldCart();
+                        e.Handled = true;
+                    }
+                    else if (ModalCustomHarga.Visibility == Visibility.Visible)
+                    {
+                        TutupModalCustomHarga();
+                        e.Handled = true;
+                    }
+                    else if (ModalPrinter.Visibility == Visibility.Visible)
                     {
                         TutupModalPrinter();
+                        e.Handled = true;
+                    }
+                    else if (_pendingCustomHarga != null)
+                    {
+                        ResetCustomHarga();
+                        SetScanStatus("Mode Custom Harga dibatalkan.");
+                        e.Handled = true;
+                    }
+                    else if (PupProduk != null && PupProduk.IsOpen)
+                    {
+                        TutupPopupCari();
                         e.Handled = true;
                     }
                     else if (_halaman != "Kasir")
@@ -201,13 +267,23 @@ namespace KasirKu.POS
             MuatDaftarPrinterModal();
 
             if (CmbModalLebarKertas != null)
-                CmbModalLebarKertas.SelectedIndex = _settings.PaperWidthMm <= 58 ? 1 : 0;
+            {
+                if (_settings.PaperWidthMm == 76 || (_settings.PrinterName ?? "").ToUpperInvariant().Contains("U220"))
+                    CmbModalLebarKertas.SelectedIndex = 1;
+                else if (_settings.PaperWidthMm <= 58)
+                    CmbModalLebarKertas.SelectedIndex = 2;
+                else
+                    CmbModalLebarKertas.SelectedIndex = 0;
+            }
 
             if (ChkModalAutoCetakStruk != null)
                 ChkModalAutoCetakStruk.IsChecked = _settings.AutoPrintReceipt;
 
             if (ChkModalKickDrawer != null)
                 ChkModalKickDrawer.IsChecked = _settings.KickDrawer;
+
+            if (ChkModalCetakSatuanStruk != null)
+                ChkModalCetakSatuanStruk.IsChecked = _settings.CetakSatuanStruk;
 
             ModalPrinter.Visibility = Visibility.Visible;
         }
@@ -255,9 +331,15 @@ namespace KasirKu.POS
         private void SimpanStateModalKeSettings()
         {
             _settings.PrinterName = CmbModalPrinterName?.Text?.Trim() ?? "";
-            _settings.PaperWidthMm = (CmbModalLebarKertas?.SelectedIndex == 1) ? 58 : 80;
+            _settings.PaperWidthMm = CmbModalLebarKertas?.SelectedIndex switch
+            {
+                1 => 76,
+                2 => 58,
+                _ => 80
+            };
             _settings.AutoPrintReceipt = ChkModalAutoCetakStruk?.IsChecked == true;
             _settings.KickDrawer = ChkModalKickDrawer?.IsChecked == true;
+            _settings.CetakSatuanStruk = ChkModalCetakSatuanStruk?.IsChecked == true;
         }
 
         private void BtnModalTestPrint_Click(object sender, RoutedEventArgs e)
@@ -286,6 +368,74 @@ namespace KasirKu.POS
             DataStorageService.SaveSettings(_settings);
             MessageBox.Show("Pengaturan printer thermal berhasil disimpan!", "Sukses", MessageBoxButton.OK, MessageBoxImage.Information);
             TutupModalPrinter();
+        }
+
+        // =========== MODAL CUSTOM HARGA (F9) ===========
+        private void BtnF9CustomHarga_Click(object sender, RoutedEventArgs e)
+        {
+            if (_halaman != "Kasir") ShowPage("Kasir");
+            BukaModalCustomHarga();
+        }
+
+        private void BukaModalCustomHarga()
+        {
+            ModalCustomHarga.Visibility = Visibility.Visible;
+            TxtNominalCustomHarga.Text = _pendingCustomHarga.HasValue ? _pendingCustomHarga.Value.ToString("F0") : "";
+            TxtNominalCustomHarga.Focus();
+            TxtNominalCustomHarga.SelectAll();
+        }
+
+        private void TutupModalCustomHarga()
+        {
+            ModalCustomHarga.Visibility = Visibility.Collapsed;
+            FocusScan();
+        }
+
+        private void BtnTutupModalCustomHarga_Click(object sender, RoutedEventArgs e) => TutupModalCustomHarga();
+
+        private void BtnBatalCustomHarga_Click(object sender, RoutedEventArgs e)
+        {
+            ResetCustomHarga();
+            SetScanStatus("Mode Custom Harga dibatalkan.");
+            FocusScan();
+        }
+
+        private void ResetCustomHarga()
+        {
+            _pendingCustomHarga = null;
+            if (PnlCustomHargaAktif != null) PnlCustomHargaAktif.Visibility = Visibility.Collapsed;
+        }
+
+        private void TxtNominalCustomHarga_PreviewKeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.Enter)
+            {
+                BtnTerapkanCustomHarga_Click(sender, e);
+                e.Handled = true;
+            }
+            else if (e.Key == Key.Escape)
+            {
+                TutupModalCustomHarga();
+                e.Handled = true;
+            }
+        }
+
+        private void BtnTerapkanCustomHarga_Click(object sender, RoutedEventArgs e)
+        {
+            string input = (TxtNominalCustomHarga.Text ?? "").Replace(".", "").Replace(",", "").Trim();
+            if (!decimal.TryParse(input, out decimal nominal) || nominal < 0)
+            {
+                MessageBox.Show("Masukkan nominal harga yang valid (angka 0 atau lebih)!", "Custom Harga", MessageBoxButton.OK, MessageBoxImage.Warning);
+                TxtNominalCustomHarga.Focus();
+                TxtNominalCustomHarga.SelectAll();
+                return;
+            }
+
+            _pendingCustomHarga = nominal;
+            PnlCustomHargaAktif.Visibility = Visibility.Visible;
+            TxtCustomHargaLabel.Text = $"Rp {nominal:N0}";
+            TutupModalCustomHarga();
+            SetScanStatus($"🏷️ Mode Custom Harga aktif: Rp {nominal:N0}. Scan barcode atau pilih produk sekarang!");
         }
 
         private void ShowPage(string page)
@@ -349,24 +499,147 @@ namespace KasirKu.POS
         }
 
         // =========== SCAN BARCODE + INPUT MANUAL ===========
-        private void TxtScan_KeyDown(object sender, KeyEventArgs e)
+        private void TxtScan_PreviewKeyDown(object sender, KeyEventArgs e)
         {
-            if (e.Key == Key.Enter) { ProsesScan(TxtScan.Text); e.Handled = true; }
-            else if (e.Key == Key.Down) { DgKeranjang.Focus(); e.Handled = true; }
+            if (PupProduk != null && PupProduk.IsOpen)
+            {
+                if (e.Key == Key.Down)
+                {
+                    if (LstCariProduk.Items.Count > 0)
+                    {
+                        int next = LstCariProduk.SelectedIndex + 1;
+                        if (next >= LstCariProduk.Items.Count) next = 0;
+                        LstCariProduk.SelectedIndex = next;
+                        LstCariProduk.ScrollIntoView(LstCariProduk.SelectedItem);
+                    }
+                    e.Handled = true;
+                    return;
+                }
+                if (e.Key == Key.Up)
+                {
+                    if (LstCariProduk.Items.Count > 0)
+                    {
+                        int prev = LstCariProduk.SelectedIndex - 1;
+                        if (prev < 0) prev = LstCariProduk.Items.Count - 1;
+                        LstCariProduk.SelectedIndex = prev;
+                        LstCariProduk.ScrollIntoView(LstCariProduk.SelectedItem);
+                    }
+                    e.Handled = true;
+                    return;
+                }
+                if (e.Key == Key.Escape)
+                {
+                    TutupPopupCari();
+                    e.Handled = true;
+                    return;
+                }
+                if (e.Key == Key.Enter)
+                {
+                    if (LstCariProduk.SelectedItem is Product pilih)
+                    {
+                        TutupPopupCari();
+                        TxtScan.Text = "";
+                        TambahKeKeranjang(pilih, 1);
+                        FocusScan();
+                        e.Handled = true;
+                        return;
+                    }
+                }
+            }
+
+            if (e.Key == Key.Enter)
+            {
+                ProsesScan(TxtScan.Text);
+                e.Handled = true;
+            }
+            else if (e.Key == Key.Down && (PupProduk == null || !PupProduk.IsOpen))
+            {
+                DgKeranjang.Focus();
+                e.Handled = true;
+            }
+        }
+
+        private void LstCariProduk_PreviewKeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.Enter && LstCariProduk.SelectedItem is Product p)
+            {
+                TutupPopupCari();
+                TxtScan.Text = "";
+                TambahKeKeranjang(p, 1);
+                FocusScan();
+                e.Handled = true;
+            }
+            else if (e.Key == Key.Escape)
+            {
+                TutupPopupCari();
+                FocusScan();
+                e.Handled = true;
+            }
+        }
+
+        private void LstCariProduk_Click(object sender, RoutedEventArgs e)
+        {
+            if (LstCariProduk.SelectedItem is Product p)
+            {
+                TutupPopupCari();
+                TxtScan.Text = "";
+                TambahKeKeranjang(p, 1);
+                FocusScan();
+            }
+        }
+
+        private void TutupPopupCari()
+        {
+            if (PupProduk != null) { PupProduk.IsOpen = false; LstCariProduk.ItemsSource = null; }
+        }
+
+        private int ParseQtyPrefix(Product p, out string kataBersih)
+        {
+            kataBersih = p.Kode;
+            return 1;
         }
 
         private void TxtScan_TextChanged(object sender, TextChangedEventArgs e)
         {
             if (!_ready) return;
             string key = (TxtScan?.Text ?? "").Trim();
-            if (string.IsNullOrEmpty(key)) { SetScanStatus("Siap scan..."); return; }
-            int n = _products.Count(p =>
+            if (string.IsNullOrEmpty(key))
+            {
+                SetScanStatus("Siap scan...");
+                TutupPopupCari();
+                return;
+            }
+
+            var cocok = _products.Where(p =>
                 p.Kode.Contains(key, StringComparison.OrdinalIgnoreCase) ||
                 p.Barcode.Contains(key, StringComparison.OrdinalIgnoreCase) ||
-                p.Nama.Contains(key, StringComparison.OrdinalIgnoreCase));
-            SetScanStatus(n == 0
-                ? $"'{key}' tidak ditemukan."
-                : $"{n} produk cocok — tekan Enter untuk masukkan ke keranjang.", n == 0);
+                p.Nama.Contains(key, StringComparison.OrdinalIgnoreCase))
+                .OrderBy(p => !p.Kode.Equals(key, StringComparison.OrdinalIgnoreCase) && !p.Barcode.Equals(key, StringComparison.OrdinalIgnoreCase))
+                .ThenBy(p => p.Nama)
+                .Take(12)
+                .ToList();
+
+            // Popup hanya muncul bila bukan barcode scan exact tunggal (barcode scanner sudah exact match)
+            if (cocok.Count == 1 && (cocok[0].Kode.Equals(key, StringComparison.OrdinalIgnoreCase) ||
+                                     cocok[0].Barcode.Equals(key, StringComparison.OrdinalIgnoreCase)))
+            {
+                SetScanStatus($"Exact match: {cocok[0].Nama}. Tekan Enter untuk masukkan.");
+                TutupPopupCari();
+                return;
+            }
+
+            if (cocok.Count > 0)
+            {
+                LstCariProduk.ItemsSource = cocok;
+                LstCariProduk.SelectedIndex = 0; // Otomatis sorot item pertama
+                PupProduk.IsOpen = true;
+                SetScanStatus($"{cocok.Count} produk cocok — Panah Atas/Bawah + Enter.");
+            }
+            else
+            {
+                TutupPopupCari();
+                SetScanStatus($"'{key}' tidak ditemukan.", true);
+            }
         }
 
         private void ProsesScan(string raw)
@@ -436,19 +709,35 @@ namespace KasirKu.POS
                 MessageBox.Show($"Stok '{p.Nama}' habis!", "Stok Habis", MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
-            var existing = _cart.FirstOrDefault(c => c.Product.Id == p.Id);
-            int diKeranjang = existing?.Qty ?? 0;
-            if (diKeranjang + qty > p.Stok)
+
+            decimal hargaItem = _pendingCustomHarga ?? p.Harga;
+            bool isCustom = _pendingCustomHarga.HasValue;
+
+            // Cari apakah item dengan harga yang sama sudah ada di keranjang
+            var existing = _cart.FirstOrDefault(c => c.Product.Id == p.Id && c.Harga == hargaItem);
+            int diKeranjangTotal = _cart.Where(c => c.Product.Id == p.Id).Sum(c => c.Qty);
+            if (diKeranjangTotal + qty > p.Stok)
             {
                 SetScanStatus($"Stok tidak cukup! Sisa {p.Nama}: {p.Stok}", true);
                 MessageBox.Show($"Stok tidak cukup! Sisa stok {p.Nama}: {p.Stok}", "Stok Kurang", MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
+
             if (existing == null)
-                _cart.Add(new CartItem { Product = p, Qty = qty });
+                _cart.Add(new CartItem { Product = p, Qty = qty, CustomHarga = _pendingCustomHarga });
             else
                 existing.Qty += qty;
-            SetScanStatus($"OK: {p.Nama} x{qty} masuk keranjang.");
+
+            if (isCustom)
+            {
+                SetScanStatus($"OK: {p.Nama} x{qty} masuk dengan harga khusus Rp {hargaItem:N0}.");
+                ResetCustomHarga(); // Opsi 1: Otomatis kembali normal untuk item berikutnya
+            }
+            else
+            {
+                SetScanStatus($"OK: {p.Nama} x{qty} masuk keranjang.");
+            }
+
             RefreshKeranjang();
         }
 
@@ -566,6 +855,7 @@ namespace KasirKu.POS
 
         private void BtnResetKeranjang_Click(object sender, RoutedEventArgs e)
         {
+            ResetCustomHarga();
             if (_cart.Count == 0 && string.IsNullOrWhiteSpace(TxtBayar.Text)) return;
             _cart.Clear();
             TxtBayar.Text = "";
@@ -604,6 +894,14 @@ namespace KasirKu.POS
             foreach (var c in _cart)
                 CatatKeluar(c.Product, c.Qty, $"Penjualan {trxId}");
 
+            // Hitung akumulasi poin pelanggan jika member dipilih (setiap Rp 10.000 belanja = 1 poin)
+            int poinDiperoleh = 0;
+            if (_selectedMember != null)
+            {
+                poinDiperoleh = (int)Math.Floor(total / 10000m);
+                _selectedMember.Poin += poinDiperoleh;
+            }
+
             var trx = new Transaction
             {
                 Id = trxId,
@@ -612,10 +910,14 @@ namespace KasirKu.POS
                 Bayar = bayar,
                 MetodeBayar = metode,
                 KasirNama = _loggedInUser?.NamaLengkap ?? _loggedInUser?.Username ?? "Kasir",
+                MemberId = _selectedMember?.Id,
+                MemberNama = _selectedMember?.Nama ?? "",
+                PoinDidapat = poinDiperoleh,
                 Items = _cart.Select(c => new TransactionItem
                 {
                     Kode = c.Kode,
-                    Nama = c.Nama,
+                    Nama = c.NamaDisplay,
+                    Satuan = string.IsNullOrWhiteSpace(c.Product.Satuan) ? "pcs" : c.Product.Satuan,
                     Harga = c.Harga,
                     HargaBeli = c.Product.HargaBeli,
                     Qty = c.Qty
@@ -647,6 +949,7 @@ namespace KasirKu.POS
 
             _cart.Clear();
             TxtBayar.Text = "";
+            ResetMemberPos();
             RefreshSemua();
             UpdateMetodeUI();
 
@@ -660,6 +963,135 @@ namespace KasirKu.POS
             preview.ShowDialog();
 
             FocusScan();
+        }
+
+        // =========== MEMBER SELECTION AUTOCOMPLETE ===========
+        private void TxtCariMemberPos_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            if (!_ready) return;
+            string key = (TxtCariMemberPos?.Text ?? "").Trim();
+            if (string.IsNullOrEmpty(key))
+            {
+                TutupPopupMemberPos();
+                return;
+            }
+
+            var cocok = _members.Where(m =>
+                m.Nama.Contains(key, StringComparison.OrdinalIgnoreCase) ||
+                m.NoHp.Contains(key, StringComparison.OrdinalIgnoreCase))
+                .Take(6).ToList();
+
+            if (cocok.Count > 0)
+            {
+                LstCariMemberPos.ItemsSource = cocok;
+                LstCariMemberPos.SelectedIndex = 0;
+                PupMemberPos.IsOpen = true;
+            }
+            else
+            {
+                TutupPopupMemberPos();
+            }
+        }
+
+        private void TxtCariMemberPos_PreviewKeyDown(object sender, KeyEventArgs e)
+        {
+            if (PupMemberPos != null && PupMemberPos.IsOpen)
+            {
+                if (e.Key == Key.Down)
+                {
+                    if (LstCariMemberPos.Items.Count > 0)
+                    {
+                        int next = (LstCariMemberPos.SelectedIndex + 1) % LstCariMemberPos.Items.Count;
+                        LstCariMemberPos.SelectedIndex = next;
+                        LstCariMemberPos.ScrollIntoView(LstCariMemberPos.SelectedItem);
+                    }
+                    e.Handled = true;
+                    return;
+                }
+                if (e.Key == Key.Up)
+                {
+                    if (LstCariMemberPos.Items.Count > 0)
+                    {
+                        int prev = LstCariMemberPos.SelectedIndex - 1;
+                        if (prev < 0) prev = LstCariMemberPos.Items.Count - 1;
+                        LstCariMemberPos.SelectedIndex = prev;
+                        LstCariMemberPos.ScrollIntoView(LstCariMemberPos.SelectedItem);
+                    }
+                    e.Handled = true;
+                    return;
+                }
+                if (e.Key == Key.Escape)
+                {
+                    TutupPopupMemberPos();
+                    e.Handled = true;
+                    return;
+                }
+                if (e.Key == Key.Enter)
+                {
+                    if (LstCariMemberPos.SelectedItem is Member pilih)
+                    {
+                        PilihMemberPos(pilih);
+                        e.Handled = true;
+                        return;
+                    }
+                }
+            }
+        }
+
+        private void LstCariMemberPos_PreviewKeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.Enter && LstCariMemberPos.SelectedItem is Member m)
+            {
+                PilihMemberPos(m);
+                e.Handled = true;
+            }
+            else if (e.Key == Key.Escape)
+            {
+                TutupPopupMemberPos();
+                e.Handled = true;
+            }
+        }
+
+        private void LstCariMemberPos_Click(object sender, RoutedEventArgs e)
+        {
+            if (LstCariMemberPos.SelectedItem is Member m)
+            {
+                PilihMemberPos(m);
+            }
+        }
+
+        private void PilihMemberPos(Member m)
+        {
+            _selectedMember = m;
+            TutupPopupMemberPos();
+            TxtCariMemberPos.Text = $"{m.Nama} ({m.NoHp})";
+            TxtCariMemberPos.IsReadOnly = true;
+            BtnBatalMemberPos.Visibility = Visibility.Visible;
+            TxtMemberPoinInfo.Text = $"⭐ Saldo: {m.Poin:N0} Poin (Belanja Rp 10.000 = +1 poin)";
+            TxtMemberPoinInfo.Visibility = Visibility.Visible;
+            FocusScan();
+        }
+
+        private void BtnBatalMemberPos_Click(object sender, RoutedEventArgs e)
+        {
+            ResetMemberPos();
+            FocusScan();
+        }
+
+        private void ResetMemberPos()
+        {
+            _selectedMember = null;
+            TxtCariMemberPos.IsReadOnly = false;
+            TxtCariMemberPos.Text = "";
+            BtnBatalMemberPos.Visibility = Visibility.Collapsed;
+            TxtMemberPoinInfo.Text = "";
+            TxtMemberPoinInfo.Visibility = Visibility.Collapsed;
+            TutupPopupMemberPos();
+        }
+
+        private void TutupPopupMemberPos()
+        {
+            if (PupMemberPos != null) { PupMemberPos.IsOpen = false; LstCariMemberPos.ItemsSource = null; }
         }
 
         // =========== PRATINJAU / CETAK STRUK (F7) ===========
@@ -712,10 +1144,23 @@ namespace KasirKu.POS
         {
             string key = TxtCariRiwayat?.Text?.Trim().ToLower() ?? "";
             var hariIni = TransaksiHariIni();
+
+            // Filter metode bayar
+            int filterIdx = CmbFilterMetodeRiwayat?.SelectedIndex ?? 0;
+            if (filterIdx == 1) // Hanya Tunai
+                hariIni = hariIni.Where(t => (t.MetodeBayar ?? "").Equals("Tunai", StringComparison.OrdinalIgnoreCase)).ToList();
+            else if (filterIdx == 2) // Hanya Non-Tunai
+                hariIni = hariIni.Where(t => !(t.MetodeBayar ?? "").Equals("Tunai", StringComparison.OrdinalIgnoreCase)).ToList();
+
             var data = string.IsNullOrEmpty(key)
                 ? hariIni
                 : hariIni.Where(t => t.Id.ToLower().Contains(key) || t.Ringkasan.ToLower().Contains(key) || t.MetodeBayar.ToLower().Contains(key)).ToList();
             DgRiwayat.ItemsSource = data;
+        }
+
+        private void CmbFilterMetodeRiwayat_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (_ready) RefreshRiwayat();
         }
 
         private void TxtCariRiwayat_TextChanged(object sender, TextChangedEventArgs e)
@@ -740,37 +1185,151 @@ namespace KasirKu.POS
             }
         }
 
-        // =========== REKAP SHIFT ===========
+        // =========== REKAP SHIFT & TUTUP KASIR ===========
+        private DateTime _rekapDari = DateTime.Today;
+        private DateTime _rekapSampai = DateTime.Today;
+
+        private void BtnRekapHariIni_Click(object sender, RoutedEventArgs e)
+        {
+            _rekapDari = DateTime.Today;
+            _rekapSampai = DateTime.Today;
+            if (DpRekapDari != null) DpRekapDari.SelectedDate = _rekapDari;
+            if (DpRekapSampai != null) DpRekapSampai.SelectedDate = _rekapSampai;
+            RefreshRekap();
+        }
+
+        private void BtnTerapkanFilterRekap_Click(object sender, RoutedEventArgs e)
+        {
+            _rekapDari = DpRekapDari?.SelectedDate ?? DateTime.Today;
+            _rekapSampai = DpRekapSampai?.SelectedDate ?? DateTime.Today;
+            RefreshRekap();
+        }
+
         private void RefreshRekap()
         {
-            var data = TransaksiHariIni();
+            if (!_ready) return;
+            DateTime dari = (_rekapDari.Date);
+            DateTime sampai = (_rekapSampai.Date.AddDays(1).AddTicks(-1));
+
+            var data = _transactions.Where(t => t.Tanggal >= dari && t.Tanggal <= sampai).ToList();
+            var expenses = _expenses.Where(x => x.Tanggal >= dari && x.Tanggal <= sampai).ToList();
+
             decimal omzet = data.Sum(t => t.Total);
             int jmlTrx = data.Count;
             int jmlItem = data.Sum(t => t.JumlahItem);
-            decimal tunai = data.Where(t => t.MetodeBayar == "Tunai").Sum(t => t.Total);
+            decimal tunai = data.Where(t => (t.MetodeBayar ?? "").Equals("Tunai", StringComparison.OrdinalIgnoreCase)).Sum(t => t.Total);
             decimal nonTunai = omzet - tunai;
+            decimal totalKeluar = expenses.Sum(x => x.Nominal);
 
             CardOmzetShift.Text = $"Rp {omzet:N0}";
             CardTrxShift.Text = jmlTrx.ToString();
             CardItemShift.Text = jmlItem.ToString();
             CardTunai.Text = $"Rp {tunai:N0}";
             CardNonTunai.Text = $"Rp {nonTunai:N0}";
+            if (CardPengeluaranShift != null) CardPengeluaranShift.Text = $"Rp {totalKeluar:N0}";
 
-            var perMetode = data.GroupBy(t => t.MetodeBayar)
+            if (DgPengeluaranKas != null) DgPengeluaranKas.ItemsSource = expenses;
+
+            UpdateRekonsiliasiShiftUI(tunai, totalKeluar);
+
+            var perMetode = data.GroupBy(t => string.IsNullOrWhiteSpace(t.MetodeBayar) ? "Tunai" : t.MetodeBayar)
                 .Select(g => $"{g.Key}: {g.Count()} trx (Rp {g.Sum(x => x.Total):N0})");
-            TxtRingkasanShift.Text = jmlTrx == 0
-                ? "Belum ada transaksi hari ini."
-                : $"Hari ini: {jmlTrx} transaksi, {jmlItem} item terjual.\n" +
-                  $"Omzet: Rp {omzet:N0} | Tunai: Rp {tunai:N0} | Non-Tunai: Rp {nonTunai:N0}\n" +
-                  $"Rincian: {string.Join(" | ", perMetode)}";
+            string periodeStr = dari.Date == sampai.Date ? dari.ToString("dd MMM yyyy") : $"{dari:dd/MM/yyyy} - {sampai:dd/MM/yyyy}";
+            TxtRingkasanShift.Text = jmlTrx == 0 && expenses.Count == 0
+                ? $"Periode {periodeStr}: Belum ada aktivitas transaksi maupun pengeluaran kas."
+                : $"Periode {periodeStr}:\n" +
+                  $"• Omzet Penjualan : Rp {omzet:N0} ({jmlTrx} transaksi, {jmlItem} item)\n" +
+                  $"  - 💵 Tunai (Kas Masuk) : Rp {tunai:N0}\n" +
+                  $"  - 📱 Non-Tunai (Digital) : Rp {nonTunai:N0}\n" +
+                  $"• 💸 Uang Keluar Drawer  : Rp {totalKeluar:N0} ({expenses.Count} kali pengeluaran)\n" +
+                  $"• Rincian Metode Bayar   : {string.Join(" | ", perMetode)}";
+        }
+
+        private void TxtShiftDrawer_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            if (!_ready) return;
+            DateTime dari = (_rekapDari.Date);
+            DateTime sampai = (_rekapSampai.Date.AddDays(1).AddTicks(-1));
+            var data = _transactions.Where(t => t.Tanggal >= dari && t.Tanggal <= sampai).ToList();
+            var expenses = _expenses.Where(x => x.Tanggal >= dari && x.Tanggal <= sampai).ToList();
+            decimal tunai = data.Where(t => (t.MetodeBayar ?? "").Equals("Tunai", StringComparison.OrdinalIgnoreCase)).Sum(t => t.Total);
+            decimal totalKeluar = expenses.Sum(x => x.Nominal);
+            UpdateRekonsiliasiShiftUI(tunai, totalKeluar);
+        }
+
+        private void UpdateRekonsiliasiShiftUI(decimal penjualanTunai, decimal pengeluaranKas)
+        {
+            if (TxtLabelDrawerFisik == null) return;
+            string rawModal = (TxtShiftModalAwal?.Text ?? "0").Replace(".", "").Replace(",", "").Trim();
+            string rawDrawer = (TxtShiftDrawerFisik?.Text ?? "0").Replace(".", "").Replace(",", "").Trim();
+            decimal.TryParse(rawModal, out decimal modalAwal);
+            decimal.TryParse(rawDrawer, out decimal drawerFisik);
+
+            decimal komputerTunai = modalAwal + penjualanTunai - pengeluaranKas;
+            decimal selisih = drawerFisik - komputerTunai;
+
+            TxtLabelDrawerFisik.Text = $"Rp {drawerFisik:N0}";
+            TxtLabelKomputerTunai.Text = $"Rp {komputerTunai:N0}";
+            TxtLabelSelisihKas.Text = (selisih >= 0 ? "+Rp " : "-Rp ") + $"{Math.Abs(selisih):N0}";
+            TxtLabelSelisihKas.Foreground = selisih < 0
+                ? new SolidColorBrush(Color.FromRgb(0xDC, 0x26, 0x26))
+                : (selisih > 0 ? new SolidColorBrush(Color.FromRgb(0x25, 0x63, 0xEB)) : new SolidColorBrush(Color.FromRgb(0x16, 0xA3, 0x4A)));
+        }
+
+        private void BtnCetakStrukLaporanShift_Click(object sender, RoutedEventArgs e)
+        {
+            _settings = DataStorageService.LoadSettings();
+            if (string.IsNullOrWhiteSpace(_settings.PrinterName))
+            {
+                MessageBox.Show("Printer thermal belum diatur. Tekan F8 untuk memilih printer.", "Printer", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            DateTime dari = (_rekapDari.Date);
+            DateTime sampai = (_rekapSampai.Date.AddDays(1).AddTicks(-1));
+            var data = _transactions.Where(t => t.Tanggal >= dari && t.Tanggal <= sampai).ToList();
+            var expenses = _expenses.Where(x => x.Tanggal >= dari && x.Tanggal <= sampai).ToList();
+
+            decimal totalPenjualan = data.Sum(t => t.Total);
+            decimal tunai = data.Where(t => (t.MetodeBayar ?? "").Equals("Tunai", StringComparison.OrdinalIgnoreCase)).Sum(t => t.Total);
+            decimal nonTunai = totalPenjualan - tunai;
+            decimal pengeluaran = expenses.Sum(x => x.Nominal);
+
+            string rawModal = (TxtShiftModalAwal?.Text ?? "0").Replace(".", "").Replace(",", "").Trim();
+            string rawDrawer = (TxtShiftDrawerFisik?.Text ?? "0").Replace(".", "").Replace(",", "").Trim();
+            decimal.TryParse(rawModal, out decimal modalAwal);
+            decimal.TryParse(rawDrawer, out decimal drawerFisik);
+
+            var report = new CashierShiftReport
+            {
+                Lokasi = "TOKO 1",
+                Tanggal = DateTime.Now,
+                Kassa = "A",
+                KasirNama = _loggedInUser?.NamaLengkap ?? _loggedInUser?.Username ?? "Kasir",
+                Shift = 1,
+                ModalAwal = modalAwal,
+                PenjualanKotor = totalPenjualan,
+                TotalTunai = tunai,
+                TotalNonTunai = nonTunai,
+                TotalPengeluaran = pengeluaran,
+                DrawerFisik = drawerFisik
+            };
+
+            var hasil = ThermalPrintService.CetakLaporanShift(report, _settings);
+            if (hasil.Success)
+                MessageBox.Show("Laporan Kasir / Tutup Shift berhasil dicetak ke printer!", "Sukses", MessageBoxButton.OK, MessageBoxImage.Information);
+            else
+                MessageBox.Show(hasil.Message, "Gagal Cetak", MessageBoxButton.OK, MessageBoxImage.Warning);
         }
 
         private void BtnCetakRekap_Click(object sender, RoutedEventArgs e)
         {
-            var data = TransaksiHariIni();
+            DateTime dari = (_rekapDari.Date);
+            DateTime sampai = (_rekapSampai.Date.AddDays(1).AddTicks(-1));
+            var data = _transactions.Where(t => t.Tanggal >= dari && t.Tanggal <= sampai).ToList();
             try
             {
-                string path = ExportService.SimpanLaporanPdf(data, DateTime.Today, DateTime.Today, settings: _settings);
+                string path = ExportService.SimpanLaporanPdf(data, _rekapDari, _rekapSampai, settings: _settings);
                 var jawab = MessageBox.Show($"Rekap shift tersimpan ({data.Count} transaksi):\n{path}\n\nBuka file sekarang?",
                     "Rekap Shift", MessageBoxButton.YesNo, MessageBoxImage.Information);
                 if (jawab == MessageBoxResult.Yes)
@@ -780,6 +1339,203 @@ namespace KasirKu.POS
             {
                 MessageBox.Show("Gagal membuat PDF: " + ex.Message, "Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
+        }
+
+        // =========== FITUR HOLD TRANSACTION (TAHAN & MUAT ANTREAN) ===========
+        private void UpdateHoldCartButtonBadge()
+        {
+            if (BtnRecallCart != null)
+            {
+                BtnRecallCart.Content = $"📋 Buka Antrean Tertahan ({_holdTransactions.Count})";
+                BtnRecallCart.Background = _holdTransactions.Count > 0
+                    ? new SolidColorBrush(Color.FromRgb(0xDC, 0x26, 0x26)) // Merah mencolok jika ada antrean tertahan
+                    : new SolidColorBrush(Color.FromRgb(0x43, 0x38, 0xCA));
+            }
+        }
+
+        private void BtnHoldCart_Click(object sender, RoutedEventArgs e)
+        {
+            if (_cart.Count == 0)
+            {
+                MessageBox.Show("Keranjang masih kosong, tidak ada transaksi yang perlu ditahan.", "Hold Antrean", MessageBoxButton.OK, MessageBoxImage.Information);
+                return;
+            }
+
+            string catatan = $"Antrean #{_holdTransactions.Count + 1} ({_cart.Sum(x => x.Qty)} item - {_cart[0].NamaDisplay})";
+            var hold = new HoldTransaction
+            {
+                Id = $"HOLD-{DateTime.Now:yyyyMMddHHmmss}",
+                Tanggal = DateTime.Now,
+                Catatan = catatan,
+                KasirNama = _loggedInUser?.NamaLengkap ?? _loggedInUser?.Username ?? "Kasir",
+                Items = _cart.Select(c => new HoldCartItem
+                {
+                    Kode = c.Kode,
+                    Nama = c.NamaDisplay,
+                    Satuan = c.Product.Satuan,
+                    Harga = c.Harga,
+                    HargaBeli = c.Product.HargaBeli,
+                    Qty = c.Qty,
+                    IsCustomPrice = c.IsCustomPrice
+                }).ToList()
+            };
+
+            _holdTransactions.Add(hold);
+            SimpanKeDisk();
+            UpdateHoldCartButtonBadge();
+
+            // Kosongkan keranjang agar bisa melayani customer berikutnya
+            _cart.Clear();
+            RefreshSemua();
+            FocusScan();
+
+            MessageBox.Show($"Transaksi berhasil ditahan sementara!\n{catatan}\n\nKeranjang sekarang bersih dan siap melayani customer antrean berikutnya.",
+                "Transaksi Ditahan (Hold)", MessageBoxButton.OK, MessageBoxImage.Information);
+        }
+
+        private void BtnRecallCart_Click(object sender, RoutedEventArgs e)
+        {
+            if (_holdTransactions.Count == 0)
+            {
+                MessageBox.Show("Saat ini tidak ada antrean transaksi yang sedang ditahan.", "Antrean Tertahan", MessageBoxButton.OK, MessageBoxImage.Information);
+                return;
+            }
+
+            DgHoldCart.ItemsSource = null;
+            DgHoldCart.ItemsSource = _holdTransactions;
+            ModalHoldCart.Visibility = Visibility.Visible;
+        }
+
+        private void TutupModalHoldCart()
+        {
+            ModalHoldCart.Visibility = Visibility.Collapsed;
+            FocusScan();
+        }
+
+        private void BtnTutupModalHoldCart_Click(object sender, RoutedEventArgs e)
+        {
+            TutupModalHoldCart();
+        }
+
+        private void BtnRecallItemGrid_Click(object sender, RoutedEventArgs e)
+        {
+            if ((sender as Button)?.Tag is not HoldTransaction hold) return;
+
+            if (_cart.Count > 0)
+            {
+                var konfirm = MessageBox.Show(
+                    "Keranjang saat ini sedang berisi barang. Apakah Anda ingin menahan (Hold) keranjang yang sedang aktif ini terlebih dahulu sebelum memuat antrean yang dipilih?",
+                    "Konfirmasi", MessageBoxButton.YesNoCancel, MessageBoxImage.Question);
+
+                if (konfirm == MessageBoxResult.Cancel) return;
+                if (konfirm == MessageBoxResult.Yes)
+                {
+                    // Hold keranjang aktif dulu
+                    BtnHoldCart_Click(this, new RoutedEventArgs());
+                }
+                else
+                {
+                    // Timpa keranjang aktif
+                    _cart.Clear();
+                }
+            }
+
+            // Muat item hold ke keranjang aktif
+            foreach (var item in hold.Items)
+            {
+                var prod = _products.FirstOrDefault(p => p.Kode.Equals(item.Kode, StringComparison.OrdinalIgnoreCase))
+                           ?? new Product { Kode = item.Kode, Nama = item.Nama, Harga = item.Harga, HargaBeli = item.HargaBeli, Satuan = item.Satuan };
+
+                var cItem = new CartItem(prod, item.Qty, item.IsCustomPrice ? item.Harga : null);
+                _cart.Add(cItem);
+            }
+
+            _holdTransactions.Remove(hold);
+            SimpanKeDisk();
+            UpdateHoldCartButtonBadge();
+            ModalHoldCart.Visibility = Visibility.Collapsed;
+
+            RefreshSemua();
+            FocusScan();
+            MessageBox.Show($"Antrean belanja {hold.Catatan} berhasil dimuat kembali ke keranjang kasir!", "Sukses Recall", MessageBoxButton.OK, MessageBoxImage.Information);
+        }
+
+        private void BtnHapusHoldGrid_Click(object sender, RoutedEventArgs e)
+        {
+            if ((sender as Button)?.Tag is not HoldTransaction hold) return;
+            if (MessageBox.Show($"Hapus antrean tertahan \"{hold.Catatan}\"?", "Konfirmasi Hapus", MessageBoxButton.YesNo, MessageBoxImage.Question) == MessageBoxResult.Yes)
+            {
+                _holdTransactions.Remove(hold);
+                SimpanKeDisk();
+                UpdateHoldCartButtonBadge();
+                DgHoldCart.ItemsSource = null;
+                DgHoldCart.ItemsSource = _holdTransactions;
+            }
+        }
+
+        // =========== FITUR PENGELUARAN KAS (CASH OUT / SETORAN) ===========
+        private void BtnKasKeluar_Click(object sender, RoutedEventArgs e)
+        {
+            TxtPengeluaranNominal.Text = "";
+            TxtPengeluaranKeterangan.Text = "";
+            CmbPengeluaranKategori.SelectedIndex = 0;
+            ModalPengeluaranKas.Visibility = Visibility.Visible;
+            TxtPengeluaranNominal.Focus();
+        }
+
+        private void TutupModalPengeluaranKas()
+        {
+            ModalPengeluaranKas.Visibility = Visibility.Collapsed;
+            FocusScan();
+        }
+
+        private void BtnTutupModalPengeluaranKas_Click(object sender, RoutedEventArgs e)
+        {
+            TutupModalPengeluaranKas();
+        }
+
+        private void BtnSimpanPengeluaranKas_Click(object sender, RoutedEventArgs e)
+        {
+            string raw = (TxtPengeluaranNominal.Text ?? "").Replace(".", "").Replace(",", "").Trim();
+            if (!decimal.TryParse(raw, out decimal nominal) || nominal <= 0)
+            {
+                MessageBox.Show("Masukkan nominal pengeluaran kas yang valid!", "Validasi", MessageBoxButton.OK, MessageBoxImage.Warning);
+                TxtPengeluaranNominal.Focus();
+                return;
+            }
+
+            string kategori = (CmbPengeluaranKategori.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? "Operasional";
+            string ket = TxtPengeluaranKeterangan.Text.Trim();
+            if (string.IsNullOrWhiteSpace(ket)) ket = kategori;
+
+            var exp = new CashExpense
+            {
+                Id = $"OUT-{DateTime.Now:yyyyMMdd}-{_nextExpenseId++:D4}",
+                Tanggal = DateTime.Now,
+                Nominal = nominal,
+                Kategori = kategori,
+                Keterangan = ket,
+                KasirNama = _loggedInUser?.NamaLengkap ?? _loggedInUser?.Username ?? "Kasir"
+            };
+
+            _expenses.Insert(0, exp);
+            SimpanKeDisk();
+
+            ModalPengeluaranKas.Visibility = Visibility.Collapsed;
+
+            // Cetak struk bukti pengeluaran kas
+            _settings = DataStorageService.LoadSettings();
+            var printHasil = ThermalPrintService.CetakPengeluaranKas(exp, _settings);
+
+            string msg = $"Pengeluaran kas sebesar Rp {nominal:N0} ({kategori}) berhasil dicatat!";
+            if (printHasil.Success)
+                msg += "\n\nStruk bukti pengeluaran kas telah otomatis dicetak.";
+            else if (!string.IsNullOrWhiteSpace(_settings.PrinterName))
+                msg += $"\n\nCatatan cetak: {printHasil.Message}";
+
+            MessageBox.Show(msg, "Pengeluaran Kas Berhasil", MessageBoxButton.OK, MessageBoxImage.Information);
+            RefreshRekap();
+            FocusScan();
         }
 
         // =========== STOK MASUK / KELUAR ===========

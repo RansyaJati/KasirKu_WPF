@@ -49,8 +49,21 @@ namespace KasirKu.Shared.Services
             }
         }
 
+        private static bool IsDotMatrix(StoreSettings settings)
+        {
+            string name = (settings.PrinterName ?? "").ToUpperInvariant();
+            return settings.PaperWidthMm == 76 ||
+                   name.Contains("U220") ||
+                   name.Contains("TM-U") ||
+                   name.Contains("DOT MATRIX") ||
+                   name.Contains("IMPACT");
+        }
+
         private static int GetColumnWidth(StoreSettings settings)
-            => settings.PaperWidthMm <= 58 ? 32 : 48;
+        {
+            if (IsDotMatrix(settings)) return 40;
+            return settings.PaperWidthMm <= 58 ? 32 : 48;
+        }
 
         private static string Divider(int width, char ch = '-') => new(ch, width);
 
@@ -127,9 +140,11 @@ namespace KasirKu.Shared.Services
                 ms.Write(CmdDrawerKickPin5, 0, CmdDrawerKickPin5.Length);
             }
 
-            // 3. LOGO TOKO
+            // 3. LOGO TOKO (hanya untuk printer thermal, dot matrix skip karena GS v 0 tidak didukung)
             bool logoPrinted = false;
-            if (settings.TampilkanLogo)
+            bool dotMatrix = IsDotMatrix(settings);
+
+            if (settings.TampilkanLogo && !dotMatrix)
             {
                 byte[] logo = LogoService.BuildEscPosLogo(settings);
                 if (logo.Length > 0)
@@ -190,8 +205,11 @@ namespace KasirKu.Shared.Services
                 foreach (var l in WrapText(item.Nama, width)) WriteLine(ms, enc, l);
                 ms.Write(CmdBoldOff, 0, CmdBoldOff.Length);
 
-                // "1X 15,000 ......... = 15,000"
-                string left = $"  {item.Qty}X {Num(item.Harga)}";
+                // "1X 15,000 ......... = 15,000" atau "1 pcs x 15,000 ......... = 15,000"
+                string sat = string.IsNullOrWhiteSpace(item.Satuan) ? "pcs" : item.Satuan.Trim();
+                string left = settings.CetakSatuanStruk
+                    ? $"  {item.Qty} {sat} x {Num(item.Harga)}"
+                    : $"  {item.Qty}X {Num(item.Harga)}";
                 string right = $"= {Num(item.Subtotal)}";
                 WriteLine(ms, enc, DottedColumns(left, right, width));
             }
@@ -260,8 +278,9 @@ namespace KasirKu.Shared.Services
                 ms.Write(CmdDrawerKickPin5, 0, CmdDrawerKickPin5.Length);
             }
 
-            // Logo
-            if (settings.TampilkanLogo)
+            // Logo (skip jika dot matrix)
+            bool dotMatrix = IsDotMatrix(settings);
+            if (settings.TampilkanLogo && !dotMatrix)
             {
                 byte[] logo = LogoService.BuildEscPosLogo(settings);
                 if (logo.Length > 0)
@@ -338,6 +357,186 @@ namespace KasirKu.Shared.Services
             catch (Exception ex)
             {
                 return (false, $"Error cetak thermal: {ex.Message}");
+            }
+        }
+
+        /// <summary>Mencetak bukti pengeluaran uang kasir (Cash Out / Petty Cash).</summary>
+        public static (bool Success, string Message) CetakPengeluaranKas(CashExpense exp, StoreSettings settings)
+        {
+            if (string.IsNullOrWhiteSpace(settings.PrinterName))
+                return (false, "Printer belum dipilih.");
+
+            try
+            {
+                var enc = GetThermalEncoding();
+                using var ms = new MemoryStream();
+                int width = GetColumnWidth(settings);
+
+                ms.Write(CmdInit, 0, CmdInit.Length);
+
+                if (settings.KickDrawer)
+                {
+                    ms.Write(CmdDrawerKickPin2, 0, CmdDrawerKickPin2.Length);
+                    ms.Write(CmdDrawerKickPin5, 0, CmdDrawerKickPin5.Length);
+                }
+
+                // Header
+                ms.Write(CmdAlignCenter, 0, CmdAlignCenter.Length);
+                ms.Write(CmdBoldOn, 0, CmdBoldOn.Length);
+                WriteLine(ms, enc, string.IsNullOrWhiteSpace(settings.NamaToko) ? "BANYU FROZEN FOOD" : settings.NamaToko);
+                ms.Write(CmdBoldOff, 0, CmdBoldOff.Length);
+                if (!string.IsNullOrWhiteSpace(settings.Alamat)) WriteLine(ms, enc, settings.Alamat);
+                if (!string.IsNullOrWhiteSpace(settings.Kota)) WriteLine(ms, enc, settings.Kota);
+                if (!string.IsNullOrWhiteSpace(settings.Telepon)) WriteLine(ms, enc, settings.Telepon);
+                WriteLine(ms, enc, Divider(width, '-'));
+
+                // Judul
+                ms.Write(CmdBoldOn, 0, CmdBoldOn.Length);
+                WriteLine(ms, enc, "BUKTI PENGELUARAN KAS");
+                ms.Write(CmdBoldOff, 0, CmdBoldOff.Length);
+                WriteLine(ms, enc, Divider(width, '-'));
+
+                // Info
+                ms.Write(CmdAlignLeft, 0, CmdAlignLeft.Length);
+                WriteLine(ms, enc, TwoColumns("No. Bukti", exp.Id, width));
+                WriteLine(ms, enc, TwoColumns("Tanggal", exp.Tanggal.ToString("dd-MM-yyyy HH:mm:ss"), width));
+                WriteLine(ms, enc, TwoColumns("Kasir", string.IsNullOrWhiteSpace(exp.KasirNama) ? "-" : exp.KasirNama.ToUpperInvariant(), width));
+                WriteLine(ms, enc, TwoColumns("Kategori", exp.Kategori, width));
+                WriteLine(ms, enc, Divider(width, '-'));
+
+                // Keterangan
+                WriteLine(ms, enc, "Keperluan:");
+                foreach (var line in WrapText(string.IsNullOrWhiteSpace(exp.Keterangan) ? "-" : exp.Keterangan, width))
+                {
+                    WriteLine(ms, enc, "  " + line);
+                }
+                WriteLine(ms, enc, Divider(width, '-'));
+
+                // Nominal
+                ms.Write(CmdBoldOn, 0, CmdBoldOn.Length);
+                ms.Write(CmdDoubleHeight, 0, CmdDoubleHeight.Length);
+                WriteLine(ms, enc, TwoColumns("NOMINAL", Num(exp.Nominal), width));
+                ms.Write(CmdNormalSize, 0, CmdNormalSize.Length);
+                ms.Write(CmdBoldOff, 0, CmdBoldOff.Length);
+
+                WriteLine(ms, enc, Divider(width, '='));
+                ms.Write(CmdAlignCenter, 0, CmdAlignCenter.Length);
+                WriteLine(ms, enc, "Tanda Tangan Kasir / Penerima");
+                WriteLine(ms, enc, "");
+                WriteLine(ms, enc, "");
+                WriteLine(ms, enc, "(.........................)");
+                WriteLine(ms, enc, "");
+
+                // Feed & Cut
+                ms.Write(CmdFeed3, 0, CmdFeed3.Length);
+                ms.Write(CmdCutPaper, 0, CmdCutPaper.Length);
+
+                bool ok = RawPrinterHelper.SendBytesToPrinter(settings.PrinterName, ms.ToArray(), $"PengeluaranKas-{exp.Id}");
+                return ok
+                    ? (true, "Struk pengeluaran kas berhasil dicetak.")
+                    : (false, "Gagal mencetak struk pengeluaran kas.");
+            }
+            catch (Exception ex)
+            {
+                return (false, $"Error cetak pengeluaran kas: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Mencetak LAPORAN KASIR / TUTUP SHIFT sesuai format struk fisik klien.
+        /// </summary>
+        public static (bool Success, string Message) CetakLaporanShift(CashierShiftReport r, StoreSettings settings)
+        {
+            if (string.IsNullOrWhiteSpace(settings.PrinterName))
+                return (false, "Printer belum dipilih.");
+
+            try
+            {
+                var enc = GetThermalEncoding();
+                using var ms = new MemoryStream();
+                int width = GetColumnWidth(settings);
+
+                ms.Write(CmdInit, 0, CmdInit.Length);
+
+                // 1. Header Toko
+                ms.Write(CmdAlignCenter, 0, CmdAlignCenter.Length);
+                ms.Write(CmdBoldOn, 0, CmdBoldOn.Length);
+                WriteLine(ms, enc, string.IsNullOrWhiteSpace(settings.NamaToko) ? "BANYU FROZEN FOOD" : settings.NamaToko);
+                ms.Write(CmdBoldOff, 0, CmdBoldOff.Length);
+                if (!string.IsNullOrWhiteSpace(settings.Alamat)) WriteLine(ms, enc, settings.Alamat);
+                if (!string.IsNullOrWhiteSpace(settings.Kota)) WriteLine(ms, enc, settings.Kota);
+                if (!string.IsNullOrWhiteSpace(settings.Telepon)) WriteLine(ms, enc, settings.Telepon);
+                WriteLine(ms, enc, Divider(width, '-'));
+
+                // 2. Info Kasir & Shift (Sesuai foto)
+                ms.Write(CmdAlignLeft, 0, CmdAlignLeft.Length);
+                ms.Write(CmdBoldOn, 0, CmdBoldOn.Length);
+                WriteLine(ms, enc, "LAPORAN KASIR");
+                ms.Write(CmdBoldOff, 0, CmdBoldOff.Length);
+                WriteLine(ms, enc, TwoColumns("Lokasi   :", r.Lokasi, width));
+                WriteLine(ms, enc, TwoColumns("Tanggal  :", r.Tanggal.ToString("dd-MM-yyyy"), width));
+                WriteLine(ms, enc, TwoColumns("Jam      :", r.Tanggal.ToString("HH:mm:ss"), width));
+                WriteLine(ms, enc, TwoColumns("Kassa    :", r.Kassa, width));
+                WriteLine(ms, enc, TwoColumns("Kasir    :", r.KasirNama.ToUpperInvariant(), width));
+                WriteLine(ms, enc, TwoColumns("SHIFT    :", r.Shift.ToString(), width));
+                WriteLine(ms, enc, Divider(width, '-'));
+
+                // 3. Omzet Penjualan
+                WriteLine(ms, enc, TwoColumns("Uang Masuk (Modal)", Num(r.ModalAwal), width));
+                WriteLine(ms, enc, TwoColumns("Penjualan", Num(r.PenjualanKotor), width));
+                WriteLine(ms, enc, TwoColumns("(-)Disc Item", "0", width));
+                WriteLine(ms, enc, TwoColumns("(-)Disc Total", Num(r.Diskon), width));
+                WriteLine(ms, enc, TwoColumns("(+)Pajak", Num(r.Pajak), width));
+                WriteLine(ms, enc, TwoColumns("(+)Disc Item Retur", "0", width));
+                WriteLine(ms, enc, TwoColumns("(+)Disc Total Retur", "0", width));
+                WriteLine(ms, enc, TwoColumns("(-)Retur", "0", width));
+                WriteLine(ms, enc, TwoColumns("(-)Tax Retur", "0", width));
+                WriteLine(ms, enc, TwoColumns("Pembulatan", "0", width));
+                WriteLine(ms, enc, "");
+
+                ms.Write(CmdBoldOn, 0, CmdBoldOn.Length);
+                WriteLine(ms, enc, TwoColumns("Penjualan Neto", Num(r.PenjualanNeto), width));
+                ms.Write(CmdBoldOff, 0, CmdBoldOff.Length);
+                WriteLine(ms, enc, "");
+
+                // 4. Total Pembayaran
+                WriteLine(ms, enc, "Total Pembayaran");
+                WriteLine(ms, enc, TwoColumns("Tunai", Num(r.TotalTunai), width));
+                WriteLine(ms, enc, TwoColumns("Voucher", "0", width));
+                WriteLine(ms, enc, TwoColumns("Debet/Kredit/Digital", Num(r.TotalNonTunai), width));
+                WriteLine(ms, enc, TwoColumns("Lainnya/Kredit", "0", width));
+                WriteLine(ms, enc, TwoColumns("Point", "0", width));
+                WriteLine(ms, enc, TwoColumns("Uang Keluar", Num(r.TotalPengeluaran), width));
+                WriteLine(ms, enc, "");
+
+                // 5. Rekonsiliasi Drawer Fisik vs Komputer & Selisih
+                ms.Write(CmdBoldOn, 0, CmdBoldOn.Length);
+                WriteLine(ms, enc, TwoColumns("Drawer (Fisik)", Num(r.DrawerFisik), width));
+                WriteLine(ms, enc, TwoColumns("Komputer", Num(r.KomputerTunai), width));
+                string selisihStr = (r.Selisih >= 0 ? "" : "-") + Num(Math.Abs(r.Selisih));
+                WriteLine(ms, enc, TwoColumns("Selisih", selisihStr, width));
+                ms.Write(CmdBoldOff, 0, CmdBoldOff.Length);
+
+                WriteLine(ms, enc, Divider(width, '='));
+                ms.Write(CmdAlignCenter, 0, CmdAlignCenter.Length);
+                WriteLine(ms, enc, "Tanda Tangan Kasir");
+                WriteLine(ms, enc, "");
+                WriteLine(ms, enc, "");
+                WriteLine(ms, enc, $"( {r.KasirNama.ToUpperInvariant()} )");
+                WriteLine(ms, enc, "");
+
+                // Feed & Cut
+                ms.Write(CmdFeed3, 0, CmdFeed3.Length);
+                ms.Write(CmdCutPaper, 0, CmdCutPaper.Length);
+
+                bool ok = RawPrinterHelper.SendBytesToPrinter(settings.PrinterName, ms.ToArray(), $"LaporanKasir-{r.Tanggal:yyyyMMdd}");
+                return ok
+                    ? (true, "Laporan Kasir berhasil dicetak.")
+                    : (false, "Gagal mencetak Laporan Kasir.");
+            }
+            catch (Exception ex)
+            {
+                return (false, $"Error cetak laporan kasir: {ex.Message}");
             }
         }
 

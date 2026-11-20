@@ -8,6 +8,7 @@
     <UseWPF>true</UseWPF>
     <RootNamespace>KasirKu.POS</RootNamespace>
     <AssemblyName>KasirKu.POS</AssemblyName>
+    <ApplicationIcon>Assets\app.ico</ApplicationIcon>
   </PropertyGroup>
 
   <ItemGroup>
@@ -17,6 +18,8 @@
 
   <ItemGroup>
     <Resource Include="Assets\banyu_nobg.png" />
+    <Resource Include="Assets\app.ico" />
+    <Resource Include="Assets\app.png" />
   </ItemGroup>
 
 </Project>

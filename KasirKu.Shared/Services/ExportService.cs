@@ -74,8 +74,10 @@ namespace KasirKu.Shared.Services
 
             foreach (var i in t.Items)
             {
+                string sat = string.IsNullOrWhiteSpace(i.Satuan) ? "pcs" : i.Satuan.Trim();
+                string qtyText = (s.CetakSatuanStruk) ? $"{i.Qty} {sat} x {Num(i.Harga)}" : $"{i.Qty}X {Num(i.Harga)}";
                 L.Add(new PdfLine { Text = TruncateText(i.Nama, W), Size = 9, Bold = true });
-                L.Add(new PdfLine { Text = Label($"  {i.Qty}X {Num(i.Harga)}", $"= {Num(i.Subtotal)}", W), Size = 8.5f });
+                L.Add(new PdfLine { Text = Label($"  {qtyText}", $"= {Num(i.Subtotal)}", W), Size = 8.5f });
             }
 
             L.Add(new PdfLine { Text = new string('-', W), Size = 8.5f, Center = true });
@@ -144,8 +146,10 @@ namespace KasirKu.Shared.Services
 
             foreach (var i in t.Items)
             {
+                string sat = string.IsNullOrWhiteSpace(i.Satuan) ? "pcs" : i.Satuan.Trim();
+                string qtyText = (s.CetakSatuanStruk) ? $"{i.Qty} {sat} x {Num(i.Harga)}" : $"{i.Qty}X {Num(i.Harga)}";
                 sb.AppendLine(TruncateText(i.Nama, W));
-                sb.AppendLine(Label($"  {i.Qty}X {Num(i.Harga)}", $"= {Num(i.Subtotal)}", W));
+                sb.AppendLine(Label($"  {qtyText}", $"= {Num(i.Subtotal)}", W));
             }
 
             sb.AppendLine(new string('-', W));
@@ -226,14 +230,18 @@ namespace KasirKu.Shared.Services
             L.Add(new PdfLine { Text = new string('=', 72), Size = 9 });
 
             decimal omzet = trxs.Sum(t => t.Total);
+            decimal omzetTunai = trxs.Where(t => (t.MetodeBayar ?? "").Equals("Tunai", StringComparison.OrdinalIgnoreCase)).Sum(t => t.Total);
+            decimal omzetNonTunai = trxs.Where(t => !(t.MetodeBayar ?? "").Equals("Tunai", StringComparison.OrdinalIgnoreCase)).Sum(t => t.Total);
             int jmlItem = trxs.Sum(t => t.JumlahItem);
             decimal rata = trxs.Count > 0 ? omzet / trxs.Count : 0;
-            var perMetode = trxs.GroupBy(t => t.MetodeBayar)
-                .Select(g => $"{g.Key}: {g.Count()} trx (Rp {g.Sum(x => x.Total):N0})").ToList();
+            var perMetode = trxs.GroupBy(t => string.IsNullOrWhiteSpace(t.MetodeBayar) ? "Tunai" : t.MetodeBayar)
+                .Select(g => $"{g.Key}: {g.Count()} trx ({Rp(g.Sum(x => x.Total))})").ToList();
 
             L.Add(new PdfLine { Text = $"Total Transaksi : {trxs.Count}", Size = 11, Bold = true });
             L.Add(new PdfLine { Text = $"Total Item      : {jmlItem} pcs", Size = 11 });
             L.Add(new PdfLine { Text = $"Total Omzet     : {Rp(omzet)}", Size = 12, Bold = true });
+            L.Add(new PdfLine { Text = $"  • Tunai (Cash): {Rp(omzetTunai)}", Size = 10, Bold = true });
+            L.Add(new PdfLine { Text = $"  • Non-Tunai   : {Rp(omzetNonTunai)} (QRIS / Transfer / dll)", Size = 10, Bold = true });
             L.Add(new PdfLine { Text = $"Rata-rata/nota  : {Rp(rata)}", Size = 11 });
             if (hargaBeliLookup != null)
                 L.Add(new PdfLine { Text = $"Laba (estimasi) : {Rp(LabaTransaksiAll(trxs, hargaBeliLookup))}", Size = 12, Bold = true });
@@ -332,6 +340,19 @@ namespace KasirKu.Shared.Services
                             "", "", 0, 0, 0, t.Total, t.Bayar, t.Kembalian));
                 }
             }
+
+            // Summary omzet di baris bawah
+            sb.AppendLine();
+            sb.AppendLine("RINGKASAN OMZET;;;;;;;;;;;;");
+            decimal totalOmzet = trxs.Sum(t => t.Total);
+            decimal omzetTunai = trxs.Where(t => (t.MetodeBayar ?? "").Equals("Tunai", StringComparison.OrdinalIgnoreCase)).Sum(t => t.Total);
+            decimal omzetNonTunai = trxs.Where(t => !(t.MetodeBayar ?? "").Equals("Tunai", StringComparison.OrdinalIgnoreCase)).Sum(t => t.Total);
+            sb.AppendLine($"Total Omzet;{totalOmzet};;;;;;;;;;;");
+            sb.AppendLine($"Tunai (Cash);{omzetTunai};;;;;;;;;;;");
+            sb.AppendLine($"Non-Tunai (Digital);{omzetNonTunai};;;;;;;;;;;");
+            if (hargaBeliLookup != null)
+                sb.AppendLine($"Laba Estimasi;{LabaTransaksiAll(trxs, hargaBeliLookup)};;;;;;;;;;;");
+
             File.WriteAllText(path, sb.ToString(), new UTF8Encoding(true));
             return path;
         }

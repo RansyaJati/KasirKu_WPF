@@ -4,6 +4,7 @@ namespace KasirKu.Shared.Models
     {
         public string Kode { get; set; } = "";
         public string Nama { get; set; } = "";
+        public string Satuan { get; set; } = "pcs";
         public decimal Harga { get; set; }
 
         /// <summary>
@@ -23,7 +24,14 @@ namespace KasirKu.Shared.Models
     {
         public string Id { get; set; } = "";
         public DateTime Tanggal { get; set; } = DateTime.Now;
-        public List<TransactionItem> Items { get; set; } = new();
+
+        private List<TransactionItem> _items = new();
+        public List<TransactionItem> Items
+        {
+            get => _items ??= new();
+            set => _items = value ?? new();
+        }
+
         public decimal Total { get; set; }
         public decimal Bayar { get; set; }
         public decimal Kembalian => Bayar - Total;
@@ -32,11 +40,18 @@ namespace KasirKu.Shared.Models
         /// <summary>Nama kasir yang melayani transaksi (dicetak di struk).</summary>
         public string KasirNama { get; set; } = "";
 
+        /// <summary>ID Member jika transaksi dilakukan oleh member.</summary>
+        public int? MemberId { get; set; }
+        /// <summary>Nama Member pelanggan jika ada.</summary>
+        public string MemberNama { get; set; } = "";
+        /// <summary>Poin yang didapat dari transaksi ini.</summary>
+        public int PoinDidapat { get; set; } = 0;
+
         public string TotalRp => $"Rp {Total:N0}";
         public string BayarRp => $"Rp {Bayar:N0}";
         public string KembalianRp => $"Rp {Kembalian:N0}";
         public string TanggalStr => Tanggal.ToString("dd/MM/yyyy HH:mm");
-        public int JumlahItem => Items.Sum(i => i.Qty);
-        public string Ringkasan => string.Join(", ", Items.Select(i => $"{i.Nama} x{i.Qty}"));
+        public int JumlahItem => Items?.Sum(i => i.Qty) ?? 0;
+        public string Ringkasan => Items != null ? string.Join(", ", Items.Select(i => $"{i.Nama} x{i.Qty}")) : "";
     }
 }

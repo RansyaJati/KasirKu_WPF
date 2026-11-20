@@ -9,6 +9,7 @@ namespace KasirKu.Shared.Models
         private string _nama = "";
         private string _satuan = "Pcs";
         private string _kategori = "Umum";
+        private string _merek = "";
         private string _supplier = "";
         private decimal _hargaBeli;
         private decimal _harga;
@@ -48,6 +49,13 @@ namespace KasirKu.Shared.Models
         {
             get => _kategori;
             set { _kategori = value; OnPropertyChanged(nameof(Kategori)); OnPropertyChanged(nameof(Kelompok)); }
+        }
+
+        /// <summary>Merek / Brand produk.</summary>
+        public string Merek
+        {
+            get => _merek;
+            set { _merek = value; OnPropertyChanged(nameof(Merek)); }
         }
 
         /// <summary>Alias agar binding kolom "Kelompok" bisa dipakai langsung.</summary>
@@ -124,7 +132,10 @@ namespace KasirKu.Shared.Models
         /// <summary>Tampilan kolom margin: Rp + persen.</summary>
         public string MarginStr => $"Rp {Margin:N0} ({MarginPersen:N1}%)";
 
-        public string DisplayStok => $"{Kode} — {Nama} (stok: {Stok})";
+        public string DisplayStok => $"{Kode} - {Nama} (stok: {Stok})";
+
+        /// <summary>Teks pendek untuk dropdown pencarian kasir: "Stok: 25".</summary>
+        public string StokStr => Stok > 0 ? $"Stok: {Stok}" : "Stok: HABIS";
 
         public event PropertyChangedEventHandler? PropertyChanged;
         protected void OnPropertyChanged(string name)

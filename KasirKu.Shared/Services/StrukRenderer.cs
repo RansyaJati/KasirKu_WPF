@@ -25,7 +25,14 @@ namespace KasirKu.Shared.Services
         /// <summary>Merender struk sebuah transaksi sesuai pengaturan toko.</summary>
         public static Bitmap RenderStruk(Transaction t, StoreSettings settings)
         {
-            int dots = settings.PaperWidthMm <= 58 ? 384 : 576;
+            int dots;
+            if (settings.PaperWidthMm == 76 || (settings.PrinterName ?? "").ToUpperInvariant().Contains("U220"))
+                dots = 480; // 40 kolom x 12 dot
+            else if (settings.PaperWidthMm <= 58)
+                dots = 384;
+            else
+                dots = 576;
+
             byte[] bytes = ThermalPrintService.BuildStrukBytes(t, settings);
             return RenderEscPos(bytes, dots);
         }
